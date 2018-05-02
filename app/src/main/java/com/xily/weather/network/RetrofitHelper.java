@@ -1,6 +1,8 @@
 package com.xily.weather.network;
 
+import com.xily.weather.network.api.BaiduLocationApiService;
 import com.xily.weather.network.api.GuoLinApiService;
+import com.xily.weather.network.api.HeWeatherApiService;
 import com.xily.weather.network.api.MeiZuWeatherApiService;
 import com.xily.weather.network.api.MyApiService;
 
@@ -17,12 +19,34 @@ public class RetrofitHelper {
     private static final String myApiUrl = "https://xilym.tk/api/";
     private static final String meiZuApiUrl = "http://aider.meizu.com/app/weather/";
     private static final String guoLinApiUrl = "http://guolin.tech/api/";
+    private static final String heWeatherApiUrl = "https://search.heweather.com/";
+    private static final String baiduApiUrl = "http://api.map.baidu.com/";
     private static MyApiService myApiServiceInstance;
     private static MeiZuWeatherApiService meiZuWeatherApiServiceInstance;
     private static GuoLinApiService guoLinApiServiceInstance;
-
+    private static HeWeatherApiService heWeatherApiServiceInstance;
+    private static BaiduLocationApiService baiduLocationApiServiceInstance;
     static {
         setUpOkHttpClient();
+    }
+
+    public static BaiduLocationApiService getBaiduLocationApi() {
+        if (baiduLocationApiServiceInstance == null) {
+            baiduLocationApiServiceInstance = new Retrofit.Builder()
+                    .baseUrl(baiduApiUrl)
+                    .client(client)
+                    .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                    .build()
+                    .create(BaiduLocationApiService.class);
+        }
+        return baiduLocationApiServiceInstance;
+    }
+
+    public static HeWeatherApiService getHeWeatherApi() {
+        if (heWeatherApiServiceInstance == null) {
+            heWeatherApiServiceInstance = createApi(HeWeatherApiService.class, heWeatherApiUrl);
+        }
+        return heWeatherApiServiceInstance;
     }
 
     public static MyApiService getMyApi() {

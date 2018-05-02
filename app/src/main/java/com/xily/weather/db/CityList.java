@@ -7,6 +7,24 @@ public class CityList extends DataSupport {
     private int weatherId;
     private String cityName;
     private String weatherData;
+    private long updateTime;
+    private String updateTimeStr;
+
+    public String getUpdateTimeStr() {
+        return updateTimeStr;
+    }
+
+    public void setUpdateTimeStr(String updateTimeStr) {
+        this.updateTimeStr = updateTimeStr;
+    }
+
+    public long getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(long updateTime) {
+        this.updateTime = updateTime;
+    }
 
     public String getWeatherData() {
         return weatherData;

@@ -1,7 +1,9 @@
 package com.xily.weather.module;
 
 import android.os.Bundle;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -15,10 +17,13 @@ import com.xily.weather.db.City;
 import com.xily.weather.db.CityList;
 import com.xily.weather.db.County;
 import com.xily.weather.db.Province;
+import com.xily.weather.entity.BusInfo;
 import com.xily.weather.entity.CitiesInfo;
 import com.xily.weather.entity.CountiesInfo;
 import com.xily.weather.entity.ProvincesInfo;
+import com.xily.weather.entity.SearchInfo;
 import com.xily.weather.network.RetrofitHelper;
+import com.xily.weather.rx.RxBus;
 import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.utils.ToastUtil;
 
@@ -49,8 +54,8 @@ public class AddCityActivity extends RxBaseActivity {
     private int cityId;
     private String cityName;
     private int WeatherId;
-    private String contryName;
-
+    private String countyName;
+    private boolean isSearch;
     @Override
     public int getLayoutId() {
         return R.layout.activity_addcity;
@@ -67,23 +72,31 @@ public class AddCityActivity extends RxBaseActivity {
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, dataList);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
-            switch (level) {
-                case 1:
-                    provinceId = codeList.get(i);
-                    provinceName = dataList.get(i);
-                    break;
-                case 2:
-                    cityId = codeList.get(i);
-                    cityName = dataList.get(i);
-                    break;
-                case 3:
-                    WeatherId = codeList.get(i);
-                    contryName = dataList.get(i);
-                    break;
-                default:
-                    break;
+            if (isSearch || level == 3) {
+                WeatherId = codeList.get(i);
+                countyName = dataList.get(i);
+                if (DataSupport.where("weatherid=?", String.valueOf(WeatherId)).find(CityList.class).isEmpty()) {
+                    CityList cityList = new CityList();
+                    cityList.setCityName(countyName);
+                    cityList.setWeatherId(WeatherId);
+                    cityList.save();
+                    ToastUtil.ShortToast("添加成功!");
+                    BusInfo busInfo = new BusInfo();
+                    busInfo.setStatus(1);
+                    RxBus.getInstance().post(busInfo);
+                    finish();
+                } else {
+                    SnackbarUtil.showMessage(getWindow().getDecorView(), "该城市已经被添加过!");
+                }
+            } else if (level == 1) {
+                provinceId = codeList.get(i);
+                provinceName = dataList.get(i);
+                loadData();
+            } else if (level == 2) {
+                cityId = codeList.get(i);
+                cityName = dataList.get(i);
+                loadData();
             }
-            loadData();
         });
     }
 
@@ -110,23 +123,37 @@ public class AddCityActivity extends RxBaseActivity {
             case 2:
                 queryCounties();
                 break;
-            case 3:
-                if (DataSupport.where("weatherid=?", String.valueOf(WeatherId)).find(CityList.class).isEmpty()) {
-                    CityList cityList = new CityList();
-                    cityList.setCityName(contryName);
-                    cityList.setWeatherId(WeatherId);
-                    cityList.save();
-                    ToastUtil.ShortToast("添加成功!");
-                    setResult(1);
-                    finish();
-                } else {
-                    SnackbarUtil.showMessage(getWindow().getDecorView(), "该城市已经被添加过!");
-                }
             default:
                 break;
         }
     }
 
+    private void search(String str) {
+        RetrofitHelper.getHeWeatherApi()
+                .search(str, "5ddec80c2a44479083eccb0f5dcfba5b")
+                .compose(bindToLifecycle())
+                .subscribeOn(Schedulers.io())
+                .doOnSubscribe(() -> progressBar.setVisibility(View.VISIBLE))
+                .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
+                .subscribeOn(AndroidSchedulers.mainThread())
+                .unsubscribeOn(AndroidSchedulers.mainThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(searchInfo -> {
+                    SearchInfo.HeWeather6Bean heWeather6Bean = searchInfo.getHeWeather6().get(0);
+                    if (heWeather6Bean.getStatus().equals("ok")) {
+                        dataList.clear();
+                        codeList.clear();
+                        for (SearchInfo.HeWeather6Bean.BasicBean basicBean : heWeather6Bean.getBasic()) {
+                            dataList.add(basicBean.getLocation());
+                            codeList.add(Integer.valueOf(basicBean.getCid().substring(2)));
+                        }
+                        finishTask();
+                    }
+                }, throwable -> {
+                    throwable.printStackTrace();
+                    SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
+                });
+    }
     private void queryProvinces() {
         title.setText("中国");
         List<Province> provinceList = DataSupport.findAll(Province.class);
@@ -266,6 +293,34 @@ public class AddCityActivity extends RxBaseActivity {
         } else {
             loadData();
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.search_menu, menu);
+        MenuItem searchItem = menu.findItem(R.id.menu_search);
+        SearchView mSearchView = (SearchView) searchItem.getActionView();
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                if (newText.isEmpty()) {
+                    level--;
+                    isSearch = false;
+                    loadData();
+                } else {
+                    isSearch = true;
+                    search(newText);
+                }
+                return false;
+            }
+        });
+        mSearchView.setQueryHint("需要查询的城市名称");
+        return true;
     }
 
     @Override

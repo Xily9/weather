@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.xily.weather">
 
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -32,6 +33,8 @@
         </activity>
         <activity android:name=".module.CityActivity" />
         <activity android:name=".module.AddCityActivity" />
+        <activity android:name=".module.AboutActivity" />
+        <activity android:name=".module.AlarmActivity" />
     </application>
 
 </manifest>

@@ -15,6 +15,8 @@ import com.xily.weather.R;
 import com.xily.weather.adapter.CityAdapter;
 import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.db.CityList;
+import com.xily.weather.entity.BusInfo;
+import com.xily.weather.rx.RxBus;
 import com.xily.weather.utils.SnackbarUtil;
 
 import org.litepal.crud.DataSupport;
@@ -23,6 +25,8 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.OnClick;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 public class CityActivity extends RxBaseActivity {
     @BindView(R.id.toolbar)
@@ -42,6 +46,7 @@ public class CityActivity extends RxBaseActivity {
 
     @Override
     public void initViews(Bundle savedInstanceState) {
+        initRxBus();
         initToolBar();
         loadData();
     }
@@ -52,6 +57,16 @@ public class CityActivity extends RxBaseActivity {
         finishTask();
     }
 
+    private void initRxBus() {
+        RxBus.getInstance()
+                .toObservable(BusInfo.class)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(busInfo -> {
+                    if (busInfo.getStatus() == 1)
+                        recreate();
+                });
+    }
     @Override
     public void finishTask() {
         if (cityList.isEmpty()) {
@@ -61,15 +76,18 @@ public class CityActivity extends RxBaseActivity {
             mRecycleView.setAdapter(adapter);
             mRecycleView.setLayoutManager(new LinearLayoutManager(this));
             adapter.setOnClicklistener(position -> {
-                Intent intent = new Intent();
-                intent.putExtra("id", position);
-                setResult(1, intent);
+                BusInfo busInfo = new BusInfo();
+                busInfo.setStatus(2);
+                busInfo.setPosition(position);
+                RxBus.getInstance().post(busInfo);
                 finish();
             });
             adapter.setOnLongClickListener(position -> {
                 DataSupport.delete(CityList.class, cityList.get(position).getId());
                 SnackbarUtil.showMessage(coordinatorLayout, "删除成功!");
-                setResult(2);
+                BusInfo busInfo = new BusInfo();
+                busInfo.setStatus(1);
+                RxBus.getInstance().post(busInfo);
                 cityList.remove(position);
                 adapter.notifyDataSetChanged();
                 return true;
@@ -89,7 +107,7 @@ public class CityActivity extends RxBaseActivity {
 
     @OnClick(R.id.btn_add)
     void addCity() {
-        startActivityForResult(new Intent(this, AddCityActivity.class), 1);
+        startActivity(new Intent(this, AddCityActivity.class));
     }
 
     @Override
@@ -100,14 +118,5 @@ public class CityActivity extends RxBaseActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1 && resultCode == 1) {
-            setResult(2);
-            recreate();
-        }
     }
 }
