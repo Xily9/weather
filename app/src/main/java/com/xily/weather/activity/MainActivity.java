@@ -9,11 +9,13 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -205,6 +207,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                 empty.setVisibility(View.VISIBLE);
             }
         }
+        checkVersion();
     }
 
     @OnClick(R.id.empty)
@@ -262,7 +265,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         Observable<WeatherInfo> offline = Observable.just(null)
                 .map(o -> {
                     String data = cityList.get(pos).getWeatherData();
-                    if (isRefreshing || cityList.get(pos).getUpdateTime() - System.currentTimeMillis() > 1000 * 60 * 60 || TextUtils.isEmpty(data)) {
+                    if (isRefreshing || System.currentTimeMillis() - cityList.get(pos).getUpdateTime() > 1000 * 60 * 60 || TextUtils.isEmpty(data)) {
                         return null;
                     } else {
                         return new Gson().fromJson(data, WeatherInfo.class);
@@ -286,7 +289,10 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                     cityListUpdate.setUpdateTimeStr(weatherInfo.getValue().get(0).getRealtime().getTime().substring(11, 16));
                     cityListUpdate.update(cityList.get(pos).getId());
                     cityList.set(pos, DataSupport.find(CityList.class, cityList.get(pos).getId()));
-
+                    Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+                    Intent intent2 = new Intent("com.xily.weather.WEATHER_BROADCAST");
+                    sendBroadcast(intent2);
                 });
         Observable.concat(offline, online)
                 .takeFirst(weatherInfo -> weatherInfo != null)
@@ -594,18 +600,23 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     }
 
     private void checkPermission() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            new AlertDialog.Builder(this)
-                    .setTitle("权限申请")
-                    .setMessage("为了保证程序的正常运行,需要申请以下权限:\n" +
-                            "网络定位:用于获取您的当前城市信息")
-                    .setPositiveButton("立刻授权", (a, b) -> {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-                    }).setNegativeButton("取消", (a, b) -> {
-                data.put("permission", false);
-                ToastUtil.ShortToast("您已取消权限申请,定位功能将不可用,如有需要,请到设置中开启");
-            }).setCancelable(false)
-                    .show();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            data.put("permission", true);
+            initCities();
+        } else {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                new AlertDialog.Builder(this)
+                        .setTitle("权限申请")
+                        .setMessage("为了保证程序的正常运行,需要申请以下权限:\n" +
+                                "网络定位:用于获取您的当前城市信息")
+                        .setPositiveButton("立刻授权", (a, b) -> {
+                            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+                        }).setNegativeButton("取消", (a, b) -> {
+                    data.put("permission", false);
+                    ToastUtil.ShortToast("您已取消权限申请,定位功能将不可用,如有需要,请到设置中开启");
+                }).setCancelable(false)
+                        .show();
+            }
         }
     }
 

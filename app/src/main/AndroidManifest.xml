@@ -24,7 +24,9 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <activity android:name=".activity.MainActivity">
+        <activity
+            android:name=".activity.MainActivity"
+            android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -40,7 +42,16 @@
         <service
             android:name=".service.WeatherService"
             android:enabled="true"
-            android:exported="false"></service>
+            android:exported="false" />
+        <receiver android:name=".widget.WeatherWidget">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_info" />
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.xily.weather.WEATHER_BROADCAST" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

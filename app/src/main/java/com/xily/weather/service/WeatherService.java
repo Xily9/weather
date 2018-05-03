@@ -18,6 +18,7 @@ import android.widget.RemoteViews;
 import com.google.gson.Gson;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
+import com.xily.weather.activity.AlarmActivity;
 import com.xily.weather.activity.MainActivity;
 import com.xily.weather.db.CityList;
 import com.xily.weather.entity.WeatherInfo;
@@ -160,7 +161,7 @@ public class WeatherService extends Service {
                                                 for (WeatherInfo.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
                                                     List<com.xily.weather.db.Notification> notification = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(com.xily.weather.db.Notification.class);
                                                     if (notification.isEmpty()) {
-                                                        getNotificationManager().notify(id++, getNotification(alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent()));
+                                                        getNotificationManager().notify(id++, getNotification(alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), 1));
                                                         com.xily.weather.db.Notification notification1 = new com.xily.weather.db.Notification();
                                                         notification1.setNotificationId(alarmsBean.getAlarmId());
                                                         notification1.save();
@@ -173,7 +174,7 @@ public class WeatherService extends Service {
                                                 if (hour > 6 && !rainNotificationTime.equals(day)) {
                                                     preferenceUtil.put("rainNotificationTime", day);
                                                     if (valueBean.getWeathers().get(0).getWeather().contains("雨")) {
-                                                        getNotificationManager().notify(id++, getNotification("今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!"));
+                                                        getNotificationManager().notify(id++, getNotification("今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!", 2));
                                                     }
                                                 }
                                             }
@@ -181,23 +182,32 @@ public class WeatherService extends Service {
                                             if (notification) {
                                                 startNotification(true);
                                             }
+                                            Intent intent = new Intent("com.xily.weather.WEATHER_BROADCAST");
+                                            sendBroadcast(intent);
                                         }))
                                 .subscribe();
                     }
                 });
     }
 
-    private Notification getNotification(String title, String content) {
-        Intent intent = new Intent(this, MainActivity.class);
+    private Notification getNotification(String title, String content, int type) {
+        Intent intent;
+        if (type == 1)
+            intent = new Intent(this, AlarmActivity.class);
+        else
+            intent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-        return new NotificationCompat.Builder(this, "default")
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "default")
                 .setWhen(System.currentTimeMillis())
                 .setContentIntent(pendingIntent)
                 .setContentTitle(title)
-                .setContentText(content)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
-                .build();
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
+        if (type == 1)
+            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(content));
+        else
+            builder.setContentText(content);
+        return builder.build();
     }
 
     class myBroadcastReceiver extends BroadcastReceiver {
