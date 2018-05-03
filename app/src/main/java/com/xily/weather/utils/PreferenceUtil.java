@@ -9,16 +9,28 @@ import com.xily.weather.MyApplication;
 import java.util.Map;
 
 public class PreferenceUtil {
-    private SharedPreferences sharedPreferences;
+    private static PreferenceUtil mInstance;
+    private static SharedPreferences sharedPreferences;
     public static final String FILE_SETTING = "setting";
     /**
      * 保存在手机里面的名字
      */
-    private SharedPreferences.Editor editor;
+    private static SharedPreferences.Editor editor;
+
+    public static PreferenceUtil getInstance() {
+        if (mInstance == null) {
+            synchronized (PreferenceUtil.class) {
+                if (mInstance == null) {
+                    mInstance = new PreferenceUtil();
+                }
+            }
+        }
+        return mInstance;
+    }
 
     @SuppressLint("CommitPrefEdits")
-    public PreferenceUtil(String fileName) {
-        sharedPreferences = MyApplication.getInstance().getSharedPreferences(fileName, Context.MODE_PRIVATE);
+    public PreferenceUtil() {
+        sharedPreferences = MyApplication.getInstance().getSharedPreferences(FILE_SETTING, Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
     }
 

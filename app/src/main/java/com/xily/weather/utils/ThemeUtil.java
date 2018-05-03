@@ -44,7 +44,7 @@ public class ThemeUtil {
     }
 
     public static int getTheme() {
-        PreferenceUtil settingsData = new PreferenceUtil(PreferenceUtil.FILE_SETTING);
+        PreferenceUtil settingsData = PreferenceUtil.getInstance();
         return settingsData.get("theme", 4);
     }
 }

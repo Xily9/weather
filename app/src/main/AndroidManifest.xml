@@ -24,17 +24,23 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <activity android:name=".module.MainActivity">
+        <activity android:name=".activity.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".module.CityActivity" />
-        <activity android:name=".module.AddCityActivity" />
-        <activity android:name=".module.AboutActivity" />
-        <activity android:name=".module.AlarmActivity" />
+        <activity android:name=".activity.CityActivity" />
+        <activity android:name=".activity.AddCityActivity" />
+        <activity android:name=".activity.AboutActivity" />
+        <activity android:name=".activity.AlarmActivity" />
+        <activity android:name=".activity.SettingsActivity" />
+
+        <service
+            android:name=".service.WeatherService"
+            android:enabled="true"
+            android:exported="false"></service>
     </application>
 
 </manifest>

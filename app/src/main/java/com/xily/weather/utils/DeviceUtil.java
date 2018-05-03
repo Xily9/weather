@@ -2,6 +2,7 @@ package com.xily.weather.utils;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
@@ -12,6 +13,8 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
 import com.xily.weather.MyApplication;
+
+import static android.content.Context.ACTIVITY_SERVICE;
 
 
 public class DeviceUtil {
@@ -83,5 +86,15 @@ public class DeviceUtil {
     public static void setStatusBarUpper(Activity activity) {
         Window window = activity.getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+    }
+
+    public static boolean isServiceRunning(String ServicePackageName) {
+        ActivityManager manager = (ActivityManager) MyApplication.getInstance().getSystemService(ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (ServicePackageName.equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

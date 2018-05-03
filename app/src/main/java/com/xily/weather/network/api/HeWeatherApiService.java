@@ -7,6 +7,6 @@ import retrofit2.http.Query;
 import rx.Observable;
 
 public interface HeWeatherApiService {
-    @GET("find")
-    Observable<SearchInfo> search(@Query("location") String location, @Query("key") String key);
+    @GET("find?key=5ddec80c2a44479083eccb0f5dcfba5b")
+    Observable<SearchInfo> search(@Query("location") String location);
 }

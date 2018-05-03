@@ -1,8 +1,9 @@
-package com.xily.weather.module;
+package com.xily.weather.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -11,12 +12,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
+import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.adapter.CityAdapter;
 import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.db.CityList;
 import com.xily.weather.entity.BusInfo;
 import com.xily.weather.rx.RxBus;
+import com.xily.weather.utils.PreferenceUtil;
 import com.xily.weather.utils.SnackbarUtil;
 
 import org.litepal.crud.DataSupport;
@@ -38,6 +41,7 @@ public class CityActivity extends RxBaseActivity {
     @BindView(R.id.view)
     CoordinatorLayout coordinatorLayout;
     private List<CityList> cityList;
+    private PreferenceUtil preferenceUtil;
 
     @Override
     public int getLayoutId() {
@@ -46,6 +50,7 @@ public class CityActivity extends RxBaseActivity {
 
     @Override
     public void initViews(Bundle savedInstanceState) {
+        preferenceUtil = PreferenceUtil.getInstance();
         initRxBus();
         initToolBar();
         loadData();
@@ -60,6 +65,7 @@ public class CityActivity extends RxBaseActivity {
     private void initRxBus() {
         RxBus.getInstance()
                 .toObservable(BusInfo.class)
+                .compose(bindToLifecycle())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(busInfo -> {
@@ -67,6 +73,7 @@ public class CityActivity extends RxBaseActivity {
                         recreate();
                 });
     }
+
     @Override
     public void finishTask() {
         if (cityList.isEmpty()) {
@@ -83,13 +90,26 @@ public class CityActivity extends RxBaseActivity {
                 finish();
             });
             adapter.setOnLongClickListener(position -> {
-                DataSupport.delete(CityList.class, cityList.get(position).getId());
+                int id = cityList.get(position).getId();
+                DataSupport.delete(CityList.class, id);
                 SnackbarUtil.showMessage(coordinatorLayout, "删除成功!");
                 BusInfo busInfo = new BusInfo();
                 busInfo.setStatus(1);
                 RxBus.getInstance().post(busInfo);
                 cityList.remove(position);
                 adapter.notifyDataSetChanged();
+                int cityId = preferenceUtil.get("notificationId", 0);
+                if (id == cityId) {
+                    if (cityList.isEmpty()) {
+                        preferenceUtil.put("notificationId", 0);
+                        preferenceUtil.put("notification", false);
+                        preferenceUtil.put("isAutoUpdate", false);
+                    } else {
+                        preferenceUtil.put("notificationId", cityList.get(0).getId());
+                    }
+                    Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+                }
                 return true;
             });
         }

@@ -1,4 +1,4 @@
-package com.xily.weather.module;
+package com.xily.weather.activity;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -49,6 +49,7 @@ import com.xily.weather.entity.SearchInfo;
 import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.network.RetrofitHelper;
 import com.xily.weather.rx.RxBus;
+import com.xily.weather.service.WeatherService;
 import com.xily.weather.utils.ColorUtil;
 import com.xily.weather.utils.DeviceUtil;
 import com.xily.weather.utils.LogUtil;
@@ -121,7 +122,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     public void initViews(Bundle savedInstanceState) {
         initToolBar();
         initNavigationView();
-        data = new PreferenceUtil(PreferenceUtil.FILE_SETTING);
+        data = PreferenceUtil.getInstance();
         initRxBus();
         if (!data.contains("permission"))
             checkPermission();
@@ -143,6 +144,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     private void initRxBus() {
         RxBus.getInstance()
                 .toObservable(BusInfo.class)
+                .compose(bindToLifecycle())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(busInfo -> {
@@ -151,6 +153,13 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                     else if (busInfo.getStatus() == 2)
                         viewPager.setCurrentItem(busInfo.getPosition());
                 });
+    }
+
+    private void startService() {
+        if (!DeviceUtil.isServiceRunning(BuildConfig.APPLICATION_ID + ".service.WeatherService")) {
+            Intent startIntent = new Intent(this, WeatherService.class);
+            startService(startIntent);
+        }
     }
 
     private void setPos(int pos) {
@@ -190,6 +199,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         if (!cityList.isEmpty()) {
             initViewPager();
             setPos(0);
+            startService();
         } else {
             if (data.get("permission", false)) {
                 empty.setVisibility(View.VISIBLE);
@@ -215,7 +225,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                         if (baiduLocationInfo.getStatus() == 0) {
                             String address = baiduLocationInfo.getResult().getAddressComponent().getDistrict();
                             return RetrofitHelper.getHeWeatherApi()
-                                    .search(address.substring(0, address.length() - 1), "5ddec80c2a44479083eccb0f5dcfba5b")
+                                    .search(address.substring(0, address.length() - 1))
                                     .compose(bindToLifecycle())
                                     .subscribeOn(Schedulers.io());
                         } else {
@@ -360,6 +370,9 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
             case R.id.city:
                 startActivity(new Intent(this, CityActivity.class));
                 break;
+            case R.id.nav_setting:
+                startActivity(new Intent(this, SettingsActivity.class));
+                break;
             case R.id.nav_theme:
                 LinearLayout linearLayout = new LinearLayout(this);
                 int padding = DeviceUtil.dp2px(20);
@@ -479,8 +492,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     private void checkVersion() {
         int version = BuildConfig.VERSION_CODE;
         String versionName = BuildConfig.VERSION_NAME;
-        PreferenceUtil setting = new PreferenceUtil(PreferenceUtil.FILE_SETTING);
-        int checkedVersion = setting.get("checkedVersion", 0);
+        int checkedVersion = data.get("checkedVersion", 0);
         RetrofitHelper.getMyApi()
                 .checkVersion()
                 .compose(bindToLifecycle())
@@ -586,8 +598,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
             new AlertDialog.Builder(this)
                     .setTitle("权限申请")
                     .setMessage("为了保证程序的正常运行,需要申请以下权限:\n" +
-                            "网络定位：通过网络对您的手机进行定位\n" +
-                            "需要用您的定位信息用于获取您的当前城市信息")
+                            "网络定位:用于获取您的当前城市信息")
                     .setPositiveButton("立刻授权", (a, b) -> {
                         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
                     }).setNegativeButton("取消", (a, b) -> {

@@ -1,4 +1,4 @@
-package com.xily.weather.module;
+package com.xily.weather.activity;
 
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;

@@ -1,14 +1,13 @@
-package com.xily.weather.module;
+package com.xily.weather.activity;
 
+import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.xily.weather.R;
@@ -24,6 +23,7 @@ import com.xily.weather.entity.ProvincesInfo;
 import com.xily.weather.entity.SearchInfo;
 import com.xily.weather.network.RetrofitHelper;
 import com.xily.weather.rx.RxBus;
+import com.xily.weather.utils.DeviceUtil;
 import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.utils.ToastUtil;
 
@@ -43,8 +43,6 @@ public class AddCityActivity extends RxBaseActivity {
     Toolbar mToolbar;
     @BindView(R.id.toolbar_title)
     TextView title;
-    @BindView(R.id.progress)
-    ProgressBar progressBar;
     private ArrayAdapter<String> adapter;
     private List<String> dataList = new ArrayList<>();
     private List<Integer> codeList = new ArrayList<>();
@@ -56,6 +54,8 @@ public class AddCityActivity extends RxBaseActivity {
     private int WeatherId;
     private String countyName;
     private boolean isSearch;
+    private ProgressDialog progressDialog;
+
     @Override
     public int getLayoutId() {
         return R.layout.activity_addcity;
@@ -73,6 +73,8 @@ public class AddCityActivity extends RxBaseActivity {
         listView.setAdapter(adapter);
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
             if (isSearch || level == 3) {
+                if (isSearch)
+                    DeviceUtil.hideSoftInput(this);
                 WeatherId = codeList.get(i);
                 countyName = dataList.get(i);
                 if (DataSupport.where("weatherid=?", String.valueOf(WeatherId)).find(CityList.class).isEmpty()) {
@@ -130,11 +132,11 @@ public class AddCityActivity extends RxBaseActivity {
 
     private void search(String str) {
         RetrofitHelper.getHeWeatherApi()
-                .search(str, "5ddec80c2a44479083eccb0f5dcfba5b")
+                .search(str)
                 .compose(bindToLifecycle())
                 .subscribeOn(Schedulers.io())
-                .doOnSubscribe(() -> progressBar.setVisibility(View.VISIBLE))
-                .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
+                .doOnSubscribe(this::showProgressDialog)
+                .doOnUnsubscribe(this::closeProgressDialog)
                 .subscribeOn(AndroidSchedulers.mainThread())
                 .unsubscribeOn(AndroidSchedulers.mainThread())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -147,13 +149,14 @@ public class AddCityActivity extends RxBaseActivity {
                             dataList.add(basicBean.getLocation());
                             codeList.add(Integer.valueOf(basicBean.getCid().substring(2)));
                         }
-                        finishTask();
+                        adapter.notifyDataSetChanged();
                     }
                 }, throwable -> {
                     throwable.printStackTrace();
                     SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
                 });
     }
+
     private void queryProvinces() {
         title.setText("中国");
         List<Province> provinceList = DataSupport.findAll(Province.class);
@@ -162,8 +165,8 @@ public class AddCityActivity extends RxBaseActivity {
                     .getProvinces()
                     .compose(bindToLifecycle())
                     .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(() -> progressBar.setVisibility(View.VISIBLE))
-                    .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
+                    .doOnSubscribe(this::showProgressDialog)
+                    .doOnUnsubscribe(this::closeProgressDialog)
                     .subscribeOn(AndroidSchedulers.mainThread())
                     .unsubscribeOn(AndroidSchedulers.mainThread())
                     .observeOn(AndroidSchedulers.mainThread())
@@ -209,8 +212,8 @@ public class AddCityActivity extends RxBaseActivity {
                     .getCities(provinceIdStr)
                     .compose(bindToLifecycle())
                     .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(() -> progressBar.setVisibility(View.VISIBLE))
-                    .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
+                    .doOnSubscribe(this::showProgressDialog)
+                    .doOnUnsubscribe(this::closeProgressDialog)
                     .subscribeOn(AndroidSchedulers.mainThread())
                     .unsubscribeOn(AndroidSchedulers.mainThread())
                     .observeOn(AndroidSchedulers.mainThread())
@@ -251,8 +254,8 @@ public class AddCityActivity extends RxBaseActivity {
                     .getCounties(String.valueOf(provinceId), cityIdStr)
                     .compose(bindToLifecycle())
                     .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(() -> progressBar.setVisibility(View.VISIBLE))
-                    .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
+                    .doOnSubscribe(this::showProgressDialog)
+                    .doOnUnsubscribe(this::closeProgressDialog)
                     .subscribeOn(AndroidSchedulers.mainThread())
                     .unsubscribeOn(AndroidSchedulers.mainThread())
                     .observeOn(AndroidSchedulers.mainThread())
@@ -321,6 +324,27 @@ public class AddCityActivity extends RxBaseActivity {
         });
         mSearchView.setQueryHint("需要查询的城市名称");
         return true;
+    }
+
+    /**
+     * 显示进度对话框
+     */
+    private void showProgressDialog() {
+        if (progressDialog == null) {
+            progressDialog = new ProgressDialog(this);
+            progressDialog.setMessage("正在加载...");
+            progressDialog.setCanceledOnTouchOutside(false);
+        }
+        progressDialog.show();
+    }
+
+    /**
+     * 关闭进度对话框
+     */
+    private void closeProgressDialog() {
+        if (progressDialog != null) {
+            progressDialog.dismiss();
+        }
     }
 
     @Override
