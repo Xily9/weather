@@ -56,12 +56,6 @@ public abstract class RxBaseActivity extends RxAppCompatActivity {
     }
 
     /**
-     * 初始化refreshLayout
-     */
-    public void initRefreshLayout() {
-    }
-
-    /**
      * 设置数据显示
      */
     public void finishTask() {

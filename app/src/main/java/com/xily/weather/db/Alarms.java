@@ -2,7 +2,7 @@ package com.xily.weather.db;
 
 import org.litepal.crud.DataSupport;
 
-public class Notification extends DataSupport {
+public class Alarms extends DataSupport {
     private int id;
     private String notificationId;
 

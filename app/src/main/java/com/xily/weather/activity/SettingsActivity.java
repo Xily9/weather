@@ -1,15 +1,25 @@
 package com.xily.weather.activity;
 
 import android.Manifest;
+import android.annotation.TargetApi;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.ContentUris;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.MenuItem;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -18,6 +28,8 @@ import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.db.CityList;
+import com.xily.weather.entity.BusInfo;
+import com.xily.weather.rx.RxBus;
 import com.xily.weather.service.WeatherService;
 import com.xily.weather.utils.DeviceUtil;
 import com.xily.weather.utils.PreferenceUtil;
@@ -44,10 +56,6 @@ public class SettingsActivity extends RxBaseActivity {
     Switch st4;
     @BindView(R.id.st_5)
     Switch st5;
-    @BindView(R.id.st_6)
-    Switch st6;
-    @BindView(R.id.location)
-    TextView location;
     private PreferenceUtil preferenceUtil;
     private LocalBroadcastManager localBroadcastManager;
     private List<CityList> cityLists;
@@ -78,8 +86,6 @@ public class SettingsActivity extends RxBaseActivity {
         st3.setChecked(preferenceUtil.get("rain", false));
         st4.setChecked(preferenceUtil.get("alarm", false));
         st5.setChecked(preferenceUtil.get("isAutoUpdate", false));
-        st6.setChecked(preferenceUtil.get("nightNoUpdate", false));
-        location.setText(preferenceUtil.get("permission", false) ? "已申请" : "未申请");
     }
 
     @Override
@@ -102,6 +108,9 @@ public class SettingsActivity extends RxBaseActivity {
     void setNotification(boolean isChecked) {
         preferenceUtil.put("notification", isChecked);
         if (isChecked) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                checkNotificationChannel();
+            }
             int cityId = preferenceUtil.get("notificationId", 0);
             boolean check = false;
             for (CityList cityList : cityLists) {
@@ -145,11 +154,17 @@ public class SettingsActivity extends RxBaseActivity {
 
     @OnCheckedChanged(R.id.st_3)
     void setRain(boolean isChecked) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            checkNotificationChannel();
+        }
         preferenceUtil.put("rain", isChecked);
     }
 
     @OnCheckedChanged(R.id.st_4)
     void setAlarm(boolean isChecked) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            checkNotificationChannel();
+        }
         preferenceUtil.put("alarm", isChecked);
     }
 
@@ -164,34 +179,115 @@ public class SettingsActivity extends RxBaseActivity {
         preferenceUtil.put("nightNoUpdate", isChecked);
     }
 
-    @OnClick(R.id.st_7)
-    void requestPermission() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            new android.app.AlertDialog.Builder(this)
-                    .setTitle("权限申请")
-                    .setMessage("为了保证程序的正常运行,需要申请以下权限:\n" +
-                            "网络定位:用于获取您的当前城市信息")
-                    .setPositiveButton("立刻授权", (a, b) -> {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-                    }).setNegativeButton("取消", (a, b) -> {
-                preferenceUtil.put("permission", false);
-                ToastUtil.ShortToast("您已取消权限申请,定位功能将不可用,如有需要,请到设置中开启");
-            }).setCancelable(false)
-                    .show();
+    @OnClick(R.id.st_8)
+    void setBgImg() {
+        checkPermission(1);
+    }
+
+    @OnClick(R.id.st_9)
+    void setNavImg() {
+        checkPermission(2);
+    }
+
+    private void checkPermission(int requestCode) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            openAlbum(requestCode);
+        } else {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("权限申请")
+                        .setMessage("为了能够自定义图片,需要申请以下权限:\n" +
+                                "文件存取:用于读取自定义图片信息")
+                        .setPositiveButton("立刻授权", (a, b) -> ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, requestCode))
+                        .setNegativeButton("取消", (a, b) -> ToastUtil.ShortToast("您已取消权限申请,不能自定义图片"))
+                        .setCancelable(false)
+                        .show();
+            } else {
+                openAlbum(requestCode);
+            }
         }
+    }
+
+    private String getImagePath(Intent data) {
+        String imagePath = null;
+        Uri uri = data.getData();
+        if (DocumentsContract.isDocumentUri(this, uri)) {
+            String docId = DocumentsContract.getDocumentId(uri);
+            if ("com.android.providers.media.documents".equals(uri.getAuthority())) {
+                String id = docId.split(":")[1];
+                String selection = MediaStore.Images.Media._ID + "=" + id;
+                imagePath = getImagePath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, selection);
+            } else if ("com.android.providers.downloads.documents".equals(uri.getAuthority())) {
+                Uri contentUri = ContentUris.withAppendedId(Uri.parse("content://downloads/public_downloads"), Long.valueOf(docId));
+                imagePath = getImagePath(contentUri, null);
+            }
+        } else if ("content".equalsIgnoreCase(uri.getScheme())) {
+            imagePath = getImagePath(uri, null);
+        } else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            imagePath = uri.getPath();
+        }
+        if (imagePath != null) {
+            return imagePath;
+        } else {
+            return null;
+        }
+    }
+
+    private void openAlbum(int requestCode) {
+        Intent intent = new Intent("android.intent.action.GET_CONTENT");
+        intent.setType("image/*");
+        startActivityForResult(intent, requestCode);
+    }
+
+    private String getImagePath(Uri uri, String selection) {
+        String path = null;
+        Cursor cursor = getContentResolver().query(uri, null, selection, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
+            }
+            cursor.close();
+        }
+        return path;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case 1:
+            case 2:
+                if (resultCode == RESULT_OK) {
+                    String imagePath = getImagePath(data);
+                    if (TextUtils.isEmpty(imagePath)) {
+                        ToastUtil.ShortToast("获取图片失败!");
+                    } else {
+                        if (requestCode == 1) {
+                            preferenceUtil.put("bgImgPath", imagePath);
+                        } else {
+                            preferenceUtil.put("navImgPath", imagePath);
+                        }
+                        BusInfo busInfo = new BusInfo();
+                        busInfo.setStatus(1);
+                        RxBus.getInstance().post(busInfo);
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case 1:
+            case 2:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    preferenceUtil.put("permission", true);
+                    openAlbum(requestCode);
                 } else {
-                    preferenceUtil.put("permission", false);
-                    ToastUtil.ShortToast("您已取消权限申请,定位功能将不可用,如有需要,请到设置中开启");
+                    ToastUtil.ShortToast("您已取消权限申请,不能自定义图片");
                 }
-                location.setText(preferenceUtil.get("permission", false) ? "已申请" : "未申请");
                 break;
             default:
                 break;
@@ -208,4 +304,22 @@ public class SettingsActivity extends RxBaseActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @TargetApi(Build.VERSION_CODES.O)
+    private void checkNotificationChannel() {
+        if (!preferenceUtil.get("notificationChannelCreated", false)) {
+            String channelId = "weather";
+            String channelName = "天气通知";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            createNotificationChannel(channelId, channelName, importance);
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    private void createNotificationChannel(String channelId, String channelName, int importance) {
+        NotificationChannel channel = new NotificationChannel(channelId, channelName, importance);
+        NotificationManager notificationManager = (NotificationManager) getSystemService(
+                NOTIFICATION_SERVICE);
+        notificationManager.createNotificationChannel(channel);
+        preferenceUtil.put("notificationChannelCreated", true);
+    }
 }

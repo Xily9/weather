@@ -82,7 +82,7 @@ public class CityActivity extends RxBaseActivity {
             CityAdapter adapter = new CityAdapter(this, cityList);
             mRecycleView.setAdapter(adapter);
             mRecycleView.setLayoutManager(new LinearLayoutManager(this));
-            adapter.setOnClicklistener(position -> {
+            adapter.setOnClickListener(position -> {
                 BusInfo busInfo = new BusInfo();
                 busInfo.setStatus(2);
                 busInfo.setPosition(position);

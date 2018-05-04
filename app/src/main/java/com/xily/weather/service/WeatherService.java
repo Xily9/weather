@@ -20,6 +20,7 @@ import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.activity.AlarmActivity;
 import com.xily.weather.activity.MainActivity;
+import com.xily.weather.db.Alarms;
 import com.xily.weather.db.CityList;
 import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.network.RetrofitHelper;
@@ -83,7 +84,7 @@ public class WeatherService extends Service {
             WeatherInfo weatherInfo = new Gson().fromJson(cityList.getWeatherData(), WeatherInfo.class);
             Intent intent1 = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent1, 0);
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "default")
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "weather")
                     .setWhen(System.currentTimeMillis())
                     .setContentIntent(pendingIntent);
             RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.layout_notification);
@@ -159,12 +160,12 @@ public class WeatherService extends Service {
                                             cityListUpdate.update(cityList1.getId());
                                             if (preferenceUtil.get("alarm", false)) {
                                                 for (WeatherInfo.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
-                                                    List<com.xily.weather.db.Notification> notification = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(com.xily.weather.db.Notification.class);
-                                                    if (notification.isEmpty()) {
-                                                        getNotificationManager().notify(id++, getNotification(alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), 1));
-                                                        com.xily.weather.db.Notification notification1 = new com.xily.weather.db.Notification();
-                                                        notification1.setNotificationId(alarmsBean.getAlarmId());
-                                                        notification1.save();
+                                                    List<Alarms> alarms = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(Alarms.class);
+                                                    if (alarms.isEmpty()) {
+                                                        getNotificationManager().notify(id++, getNotification(alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), cityList1.getId()));
+                                                        Alarms alarms1 = new Alarms();
+                                                        alarms1.setNotificationId(alarmsBean.getAlarmId());
+                                                        alarms1.save();
                                                     }
                                                 }
                                             }
@@ -174,7 +175,7 @@ public class WeatherService extends Service {
                                                 if (hour > 6 && !rainNotificationTime.equals(day)) {
                                                     preferenceUtil.put("rainNotificationTime", day);
                                                     if (valueBean.getWeathers().get(0).getWeather().contains("雨")) {
-                                                        getNotificationManager().notify(id++, getNotification("今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!", 2));
+                                                        getNotificationManager().notify(id++, getNotification("今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!"));
                                                     }
                                                 }
                                             }
@@ -182,7 +183,7 @@ public class WeatherService extends Service {
                                             if (notification) {
                                                 startNotification(true);
                                             }
-                                            Intent intent = new Intent("com.xily.weather.WEATHER_BROADCAST");
+                                            Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".WEATHER_BROADCAST");
                                             sendBroadcast(intent);
                                         }))
                                 .subscribe();
@@ -190,14 +191,23 @@ public class WeatherService extends Service {
                 });
     }
 
-    private Notification getNotification(String title, String content, int type) {
+    private Notification getNotification(String title, String content) {
+        return getNotification(title, content, 2, 0);
+    }
+
+    private Notification getNotification(String title, String content, int id) {
+        return getNotification(title, content, 1, id);
+    }
+
+    private Notification getNotification(String title, String content, int type, int id) {
         Intent intent;
-        if (type == 1)
+        if (type == 1) {
             intent = new Intent(this, AlarmActivity.class);
-        else
+            intent.putExtra("id", id);
+        } else
             intent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "default")
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "weather")
                 .setWhen(System.currentTimeMillis())
                 .setContentIntent(pendingIntent)
                 .setContentTitle(title)

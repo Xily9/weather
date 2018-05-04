@@ -85,7 +85,7 @@ public class WeatherWidget extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        if ("com.xily.weather.WEATHER_BROADCAST".equals(intent.getAction())) {
+        if ((BuildConfig.APPLICATION_ID + ".WEATHER_BROADCAST").equals(intent.getAction())) {
             Bundle extras = intent.getExtras();
             if (extras != null) {
                 int[] appWidgetIds = extras.getIntArray(AppWidgetManager.EXTRA_APPWIDGET_IDS);

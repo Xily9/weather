@@ -2,7 +2,6 @@ package com.xily.weather.adapter;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
-import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,32 +10,18 @@ import android.widget.TextView;
 
 import com.google.gson.Gson;
 import com.xily.weather.R;
+import com.xily.weather.base.BaseAdapter;
 import com.xily.weather.db.CityList;
 import com.xily.weather.entity.WeatherInfo;
 
 import java.util.List;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
 
-public class CityAdapter extends RecyclerView.Adapter<CityAdapter.ViewHolder> {
+public class CityAdapter extends BaseAdapter<CityAdapter.ViewHolder, CityList> {
 
-    private Context mContext;
-    private List<CityList> cityList;
-    private onClickListener OnClicklistener;
-    private onLongClickListener OnLongClickListener;
-
-    public CityAdapter(Context mContext, List<CityList> cityList) {
-        this.mContext = mContext;
-        this.cityList = cityList;
-    }
-
-    public void setOnClicklistener(onClickListener onClicklistener) {
-        this.OnClicklistener = onClicklistener;
-    }
-
-    public void setOnLongClickListener(onLongClickListener onLongClickListener) {
-        this.OnLongClickListener = onLongClickListener;
+    public CityAdapter(Context mContext, List<CityList> mList) {
+        super(mContext, mList);
     }
 
     @NonNull
@@ -46,11 +31,9 @@ public class CityAdapter extends RecyclerView.Adapter<CityAdapter.ViewHolder> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.itemView.setOnClickListener(view -> OnClicklistener.onclick(position));
-        holder.itemView.setOnLongClickListener(view -> OnLongClickListener.onLongClick(position));
-        holder.cityName.setText(cityList.get(position).getCityName());
-        String data = cityList.get(position).getWeatherData();
+    protected void onBindViewHolder(@NonNull ViewHolder holder, int position, CityList value) {
+        holder.cityName.setText(value.getCityName());
+        String data = value.getWeatherData();
         if (TextUtils.isEmpty(data)) {
             holder.air.setText("N/A");
             holder.temperature.setText("N/A");
@@ -71,15 +54,16 @@ public class CityAdapter extends RecyclerView.Adapter<CityAdapter.ViewHolder> {
     }
 
     @Override
-    public int getItemCount() {
-        return cityList.size();
+    protected int getLayoutId() {
+        return R.layout.layout_item_city;
     }
 
-    public void setCityList(List<CityList> cityList) {
-        this.cityList = cityList;
+    @Override
+    protected ViewHolder getViewHolder(View view) {
+        return new ViewHolder(view);
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder {
+    class ViewHolder extends BaseAdapter.ViewHolder {
         @BindView(R.id.cityName)
         TextView cityName;
         @BindView(R.id.weather)
@@ -97,15 +81,7 @@ public class CityAdapter extends RecyclerView.Adapter<CityAdapter.ViewHolder> {
 
         ViewHolder(View itemView) {
             super(itemView);
-            ButterKnife.bind(this, itemView);
         }
     }
 
-    public interface onClickListener {
-        void onclick(int position);
-    }
-
-    public interface onLongClickListener {
-        boolean onLongClick(int position);
-    }
 }

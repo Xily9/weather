@@ -5,13 +5,18 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
@@ -23,6 +28,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -34,14 +40,19 @@ import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.gson.Gson;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.adapter.ForecastAdapter;
+import com.xily.weather.adapter.SuggestAdapter;
 import com.xily.weather.adapter.Weather3Adapter;
 import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.db.CityList;
@@ -51,6 +62,7 @@ import com.xily.weather.entity.SearchInfo;
 import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.network.RetrofitHelper;
 import com.xily.weather.rx.RxBus;
+import com.xily.weather.rx.RxHelper;
 import com.xily.weather.service.WeatherService;
 import com.xily.weather.utils.ColorUtil;
 import com.xily.weather.utils.DeviceUtil;
@@ -122,14 +134,33 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
 
     @Override
     public void initViews(Bundle savedInstanceState) {
+        data = PreferenceUtil.getInstance();
+        loadBackgroundImage();
         initToolBar();
         initNavigationView();
-        data = PreferenceUtil.getInstance();
         initRxBus();
-        if (!data.contains("permission"))
-            checkPermission();
-        else {
-            initCities();
+        initCities();
+        checkVersion();
+    }
+
+    private void loadBackgroundImage() {
+        SimpleTarget<Drawable> drawableSimpleTarget = new SimpleTarget<Drawable>() {
+            @Override
+            public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
+                mDrawerLayout.setBackground(resource);
+            }
+        };
+        String imagePath = data.get("bgImgPath", "");
+        if (TextUtils.isEmpty(imagePath)) {
+           /* Glide.with(this)
+                    .load(R.drawable.bg)
+                    .into(drawableSimpleTarget);*/
+            mDrawerLayout.setBackgroundResource(R.drawable.bg);
+        } else {
+            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+            Glide.with(this)
+                    .load(bitmap)
+                    .into(drawableSimpleTarget);
         }
     }
 
@@ -147,8 +178,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         RxBus.getInstance()
                 .toObservable(BusInfo.class)
                 .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
+                .compose(RxHelper.applySchedulers())
                 .subscribe(busInfo -> {
                     if (busInfo.getStatus() == 1)
                         recreate();
@@ -185,8 +215,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         subscription = Observable.just(null)
                 .delay(1000, TimeUnit.MILLISECONDS)
                 .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
+                .compose(RxHelper.applySchedulers())
                 .subscribe(o -> {
                     liDot.setVisibility(View.GONE);
                     liDot.startAnimation(AnimationUtils.loadAnimation(this, R.anim.alpha_out));
@@ -203,61 +232,79 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
             setPos(0);
             startService();
         } else {
-            if (data.get("permission", false)) {
-                empty.setVisibility(View.VISIBLE);
-            }
+            empty.setVisibility(View.VISIBLE);
         }
-        checkVersion();
     }
 
     @OnClick(R.id.empty)
+    void checkPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            findLocation();
+        } else {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                new AlertDialog.Builder(this)
+                        .setTitle("权限申请")
+                        .setMessage("为了能够正常定位,需要申请以下权限:\n" +
+                                "网络定位:用于获取您的当前城市信息")
+                        .setPositiveButton("立刻授权", (a, b) -> ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1))
+                        .setNegativeButton("取消", (a, b) -> ToastUtil.ShortToast("您已取消权限申请,无法定位!"))
+                        .setCancelable(false)
+                        .show();
+            }
+        }
+    }
+
     void findLocation() {
         Location location = DeviceUtil.getLocation();
-        String str = String.valueOf(location.getLatitude()) + "," + String.valueOf(location.getLongitude());
-        LogUtil.d("location", str);
-        RetrofitHelper.getBaiduLocationApi()
-                .getAddress(str)
-                .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .flatMap(responseBody -> {
-                    try {
-                        String jsonStr = responseBody.string();
-                        String addrJson = jsonStr.substring(29, jsonStr.length() - 1);
-                        LogUtil.d("json", addrJson);
-                        BaiduLocationInfo baiduLocationInfo = new Gson().fromJson(addrJson, BaiduLocationInfo.class);
-                        if (baiduLocationInfo.getStatus() == 0) {
-                            String address = baiduLocationInfo.getResult().getAddressComponent().getDistrict();
-                            return RetrofitHelper.getHeWeatherApi()
-                                    .search(address.substring(0, address.length() - 1))
-                                    .compose(bindToLifecycle())
-                                    .subscribeOn(Schedulers.io());
-                        } else {
-                            return Observable.error(new RuntimeException("定位失败!"));
+        if (location == null) {
+            ToastUtil.ShortToast("获取定位信息失败!");
+        } else {
+            String str = String.valueOf(location.getLatitude()) + "," + String.valueOf(location.getLongitude());
+            LogUtil.d("location", str);
+            RetrofitHelper.getBaiduLocationApi()
+                    .getAddress(str)
+                    .compose(bindToLifecycle())
+                    .subscribeOn(Schedulers.io())
+                    .flatMap(responseBody -> {
+                        try {
+                            String jsonStr = responseBody.string();
+                            String addrJson = jsonStr.substring(29, jsonStr.length() - 1);
+                            LogUtil.d("json", addrJson);
+                            BaiduLocationInfo baiduLocationInfo = new Gson().fromJson(addrJson, BaiduLocationInfo.class);
+                            if (baiduLocationInfo.getStatus() == 0) {
+                                String address = baiduLocationInfo.getResult().getAddressComponent().getDistrict();
+                                return RetrofitHelper.getHeWeatherApi()
+                                        .search(address.substring(0, address.length() - 1))
+                                        .compose(bindToLifecycle())
+                                        .subscribeOn(Schedulers.io());
+                            } else {
+                                return Observable.error(new RuntimeException("定位失败!"));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            throw new RuntimeException("定位失败!");
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException("定位失败!");
-                    }
-                })
-                .doOnSubscribe(() -> progressBar.setVisibility(View.VISIBLE))
-                .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .unsubscribeOn(AndroidSchedulers.mainThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(searchInfo -> {
-                    SearchInfo.HeWeather6Bean heWeather6Bean = searchInfo.getHeWeather6().get(0);
-                    if (heWeather6Bean.getStatus().equals("ok") && !heWeather6Bean.getBasic().isEmpty()) {
-                        CityList cityList = new CityList();
-                        cityList.setCityName(heWeather6Bean.getBasic().get(0).getLocation());
-                        cityList.setWeatherId(Integer.valueOf(heWeather6Bean.getBasic().get(0).getCid().substring(2)));
-                        cityList.save();
-                        empty.setVisibility(View.GONE);
-                        initCities();
-                    }
-                }, throwable -> {
-                    throwable.printStackTrace();
-                    SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
-                });
+                    })
+                    .doOnSubscribe(() -> progressBar.setVisibility(View.VISIBLE))
+                    .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
+                    .subscribeOn(AndroidSchedulers.mainThread())
+                    .unsubscribeOn(AndroidSchedulers.mainThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(searchInfo -> {
+                        SearchInfo.HeWeather6Bean heWeather6Bean = searchInfo.getHeWeather6().get(0);
+                        if (heWeather6Bean.getStatus().equals("ok") && !heWeather6Bean.getBasic().isEmpty()) {
+                            CityList cityList = new CityList();
+                            cityList.setCityName(heWeather6Bean.getBasic().get(0).getLocation());
+                            cityList.setWeatherId(Integer.valueOf(heWeather6Bean.getBasic().get(0).getCid().substring(2)));
+                            cityList.save();
+                            empty.setVisibility(View.GONE);
+                            initCities();
+                        }
+                    }, throwable -> {
+                        throwable.printStackTrace();
+                        SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
+                    });
+        }
     }
 
     public void loadData(int pos, View view) {
@@ -291,7 +338,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                     cityList.set(pos, DataSupport.find(CityList.class, cityList.get(pos).getId()));
                     Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
                     LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-                    Intent intent2 = new Intent("com.xily.weather.WEATHER_BROADCAST");
+                    Intent intent2 = new Intent(BuildConfig.APPLICATION_ID + ".WEATHER_BROADCAST");
                     sendBroadcast(intent2);
                 });
         Observable.concat(offline, online)
@@ -303,16 +350,20 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                 });
     }
 
+    private void setTextView(View view, @IdRes int resId, String text) {
+        ((TextView) view.findViewById(resId)).setText(text);
+    }
+
     public void finishTask(int pos, View view, WeatherInfo weatherInfo) {
         WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
         if (currentPos == pos)
             updateTime.setText(cityList.get(pos).getUpdateTimeStr() + "更新");
-        ((TextView) view.findViewById(R.id.temperature)).setText(valueBean.getRealtime().getTemp());
-        ((TextView) view.findViewById(R.id.weather)).setText(valueBean.getRealtime().getWeather());
-        ((TextView) view.findViewById(R.id.air)).setText(valueBean.getPm25().getAqi() + " " + valueBean.getPm25().getQuality());
-        ((TextView) view.findViewById(R.id.wet)).setText(valueBean.getRealtime().getSD() + "%");
-        ((TextView) view.findViewById(R.id.wind)).setText(valueBean.getRealtime().getWD() + valueBean.getRealtime().getWS());
-        ((TextView) view.findViewById(R.id.sendibleTemp)).setText(valueBean.getRealtime().getSendibleTemp() + "°C");
+        setTextView(view, R.id.temperature, valueBean.getRealtime().getTemp());
+        setTextView(view, R.id.weather, valueBean.getRealtime().getWeather());
+        setTextView(view, R.id.air, valueBean.getPm25().getAqi() + " " + valueBean.getPm25().getQuality());
+        setTextView(view, R.id.wet, valueBean.getRealtime().getSD() + "%");
+        setTextView(view, R.id.wind, valueBean.getRealtime().getWD() + valueBean.getRealtime().getWS());
+        setTextView(view, R.id.sendibleTemp, valueBean.getRealtime().getSendibleTemp() + "°C");
         if (!valueBean.getAlarms().isEmpty()) {
             Button button = view.findViewById(R.id.alarm);
             button.setVisibility(View.VISIBLE);
@@ -349,25 +400,16 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
             setOrientation(LinearLayoutManager.HORIZONTAL);
         }});
         recyclerView1.setAdapter(new Weather3Adapter(this, valueBean.getWeatherDetailsInfo().getWeather3HoursDetailsInfos()));
-        ((TextView) view.findViewById(R.id.pm25)).setText(valueBean.getPm25().getPm25());
-        ((TextView) view.findViewById(R.id.pm10)).setText(valueBean.getPm25().getPm10());
-        ((TextView) view.findViewById(R.id.so2)).setText(valueBean.getPm25().getSo2());
-        ((TextView) view.findViewById(R.id.no2)).setText(valueBean.getPm25().getNo2());
-        ((TextView) view.findViewById(R.id.co)).setText(valueBean.getPm25().getCo());
-        ((TextView) view.findViewById(R.id.o3)).setText(valueBean.getPm25().getO3());
+        setTextView(view, R.id.pm25, valueBean.getPm25().getPm25());
+        setTextView(view, R.id.pm10, valueBean.getPm25().getPm10());
+        setTextView(view, R.id.so2, valueBean.getPm25().getSo2());
+        setTextView(view, R.id.no2, valueBean.getPm25().getNo2());
+        setTextView(view, R.id.co, valueBean.getPm25().getCo());
+        setTextView(view, R.id.o3, valueBean.getPm25().getO3());
         List<WeatherInfo.ValueBean.IndexesBean> indexesBeans = valueBean.getIndexes();
-        ((TextView) view.findViewById(R.id.name1)).setText(indexesBeans.get(0).getName());
-        ((TextView) view.findViewById(R.id.value1)).setText(indexesBeans.get(0).getLevel());
-        ((TextView) view.findViewById(R.id.name2)).setText(indexesBeans.get(1).getName());
-        ((TextView) view.findViewById(R.id.value2)).setText(indexesBeans.get(1).getLevel());
-        ((TextView) view.findViewById(R.id.name3)).setText(indexesBeans.get(2).getName());
-        ((TextView) view.findViewById(R.id.value3)).setText(indexesBeans.get(2).getLevel());
-        ((TextView) view.findViewById(R.id.name4)).setText(indexesBeans.get(3).getName());
-        ((TextView) view.findViewById(R.id.value4)).setText(indexesBeans.get(3).getLevel());
-        ((TextView) view.findViewById(R.id.name5)).setText(indexesBeans.get(4).getName());
-        ((TextView) view.findViewById(R.id.value5)).setText(indexesBeans.get(4).getLevel());
-        ((TextView) view.findViewById(R.id.name6)).setText(indexesBeans.get(5).getName());
-        ((TextView) view.findViewById(R.id.value6)).setText(indexesBeans.get(5).getLevel());
+        RecyclerView suggest = view.findViewById(R.id.suggest);
+        suggest.setLayoutManager(new GridLayoutManager(this, 3));
+        suggest.setAdapter(new SuggestAdapter(this, indexesBeans));
     }
 
     @Override
@@ -426,6 +468,17 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         mDrawerToggle.syncState();
         mNavigationView.setNavigationItemSelectedListener(this);
         View sideMenuView = mNavigationView.inflateHeaderView(R.layout.layout_side_menu);
+        String imagePath = data.get("navImgPath", "");
+        ImageView imageView = sideMenuView.findViewById(R.id.nav_image);
+        if (TextUtils.isEmpty(imagePath)) {
+            imageView.setMinimumHeight(DeviceUtil.dp2px(200));
+            imageView.setImageResource(R.drawable.bg);
+        } else {
+            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+            Glide.with(this)
+                    .load(bitmap)
+                    .into(imageView);
+        }
     }
 
     private void initViewPager() {
@@ -502,8 +555,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         RetrofitHelper.getMyApi()
                 .checkVersion()
                 .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
+                .compose(RxHelper.applySchedulers())
                 .subscribe(versionInfo -> {
                     LogUtil.d("test", "yes");
                     if (versionInfo.getStatus() == 0) {
@@ -586,8 +638,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         })
                 .onBackpressureBuffer()
                 .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
+                .compose(RxHelper.applySchedulers())
                 .subscribe(progressDialog::setProgress, Throwable::printStackTrace, () -> {
                     progressDialog.dismiss();
                     Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -599,42 +650,19 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                 });
     }
 
-    private void checkPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            data.put("permission", true);
-            initCities();
-        } else {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                new AlertDialog.Builder(this)
-                        .setTitle("权限申请")
-                        .setMessage("为了保证程序的正常运行,需要申请以下权限:\n" +
-                                "网络定位:用于获取您的当前城市信息")
-                        .setPositiveButton("立刻授权", (a, b) -> {
-                            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-                        }).setNegativeButton("取消", (a, b) -> {
-                    data.put("permission", false);
-                    ToastUtil.ShortToast("您已取消权限申请,定位功能将不可用,如有需要,请到设置中开启");
-                }).setCancelable(false)
-                        .show();
-            }
-        }
-    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case 1:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    data.put("permission", true);
+                    findLocation();
                 } else {
-                    data.put("permission", false);
-                    ToastUtil.ShortToast("您已取消权限申请,定位功能将不可用,如有需要,请到设置中开启");
+                    ToastUtil.ShortToast("您已取消权限申请,无法定位!");
                 }
-                initCities();
                 break;
             default:
                 break;
         }
     }
-
 }

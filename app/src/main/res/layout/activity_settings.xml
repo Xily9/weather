@@ -207,35 +207,35 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="其他"
+                android:text="自定义"
                 android:textColor="?attr/colorAccent"
                 android:layout_marginBottom="10dp"
                 android:layout_marginTop="20dp" />
 
-            <LinearLayout
+            <Button
+                android:id="@+id/st_8"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/st_7"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:background="#00ffffff"
                     android:gravity="left|center_vertical"
-                    android:text="定位权限申请"
+                android:text="自定义背景图"
                     android:textSize="17sp" />
 
-                <TextView
-                    android:id="@+id/location"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="right|center_vertical"
-                    android:layout_marginRight="5dp"
-                    android:textColor="#000"
-                    android:textSize="17sp" />
-            </LinearLayout>
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1px"
+                android:layout_marginBottom="5dp"
+                android:layout_marginTop="5dp"
+                android:background="#aaa" />
+
+            <Button
+                android:id="@+id/st_9"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="#00ffffff"
+                android:gravity="left|center_vertical"
+                android:text="自定义侧栏顶部背景"
+                android:textSize="17sp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

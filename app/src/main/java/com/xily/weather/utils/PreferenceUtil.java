@@ -1,8 +1,8 @@
 package com.xily.weather.utils;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 import com.xily.weather.MyApplication;
 
@@ -11,10 +11,6 @@ import java.util.Map;
 public class PreferenceUtil {
     private static PreferenceUtil mInstance;
     private static SharedPreferences sharedPreferences;
-    public static final String FILE_SETTING = "setting";
-    /**
-     * 保存在手机里面的名字
-     */
     private static SharedPreferences.Editor editor;
 
     public static PreferenceUtil getInstance() {
@@ -30,7 +26,7 @@ public class PreferenceUtil {
 
     @SuppressLint("CommitPrefEdits")
     public PreferenceUtil() {
-        sharedPreferences = MyApplication.getInstance().getSharedPreferences(FILE_SETTING, Context.MODE_PRIVATE);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(MyApplication.getInstance());
         editor = sharedPreferences.edit();
     }
 

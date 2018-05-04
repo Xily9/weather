@@ -3,14 +3,14 @@
 
     <dbname value="weather" />
 
-    <version value="4" />
+    <version value="5" />
 
     <list>
         <mapping class="com.xily.weather.db.City" />
         <mapping class="com.xily.weather.db.County" />
         <mapping class="com.xily.weather.db.Province" />
         <mapping class="com.xily.weather.db.CityList" />
-        <mapping class="com.xily.weather.db.Notification" />
+        <mapping class="com.xily.weather.db.Alarms" />
     </list>
 
 </litepal>

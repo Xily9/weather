@@ -2,14 +2,12 @@ package com.xily.weather.adapter;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
-import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.xily.weather.R;
+import com.xily.weather.base.BaseAdapter;
 import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.utils.LogUtil;
 
@@ -18,12 +16,9 @@ import java.util.List;
 import java.util.Map;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
 
-public class Weather3Adapter extends RecyclerView.Adapter<Weather3Adapter.ViewHolder> {
+public class Weather3Adapter extends BaseAdapter<Weather3Adapter.ViewHolder, WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> {
 
-    private Context mContext;
-    private List<WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> weathersBeanList;
     private static Map<String, Integer> map = new HashMap<String, Integer>() {{
         put("0", R.drawable.weather_0);
         put("1", R.drawable.weather_1);
@@ -36,37 +31,34 @@ public class Weather3Adapter extends RecyclerView.Adapter<Weather3Adapter.ViewHo
         put("29", R.drawable.weather_29);
     }};
 
-    public Weather3Adapter(Context mContext, List<WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> weathersBeanList) {
-        this.mContext = mContext;
-        this.weathersBeanList = weathersBeanList;
-    }
-
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new ViewHolder(LayoutInflater.from(mContext).inflate(R.layout.layout_item_weather3, parent, false));
+    public Weather3Adapter(Context mContext, List<WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> mList) {
+        super(mContext, mList);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean weather3HoursDetailsInfosBean = weathersBeanList.get(position);
-        holder.time.setText(weather3HoursDetailsInfosBean.getStartTime().substring(11, 16));
-        if (map.containsKey(weather3HoursDetailsInfosBean.getImg())) {
-            holder.icon.setImageResource(map.get(weather3HoursDetailsInfosBean.getImg()));
+    protected int getLayoutId() {
+        return R.layout.layout_item_weather3;
+    }
+
+    @Override
+    protected ViewHolder getViewHolder(View view) {
+        return new ViewHolder(view);
+    }
+
+    @Override
+    protected void onBindViewHolder(@NonNull ViewHolder holder, int position, WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean value) {
+        holder.time.setText(value.getStartTime().substring(11, 16));
+        if (map.containsKey(value.getImg())) {
+            holder.icon.setImageResource(map.get(value.getImg()));
         } else {
             holder.icon.setImageResource(R.drawable.weather_na);
-            LogUtil.d("unknown", weather3HoursDetailsInfosBean.getWeather() + weather3HoursDetailsInfosBean.getImg());
+            LogUtil.d("unknown", value.getWeather() + value.getImg());
         }
-        holder.weather.setText(weather3HoursDetailsInfosBean.getWeather());
-        holder.temperature.setText(weather3HoursDetailsInfosBean.getHighestTemperature() + "°C");
+        holder.weather.setText(value.getWeather());
+        holder.temperature.setText(value.getHighestTemperature() + "°C");
     }
 
-    @Override
-    public int getItemCount() {
-        return weathersBeanList.size();
-    }
-
-    class ViewHolder extends RecyclerView.ViewHolder {
+    class ViewHolder extends BaseAdapter.ViewHolder {
         @BindView(R.id.time)
         TextView time;
         @BindView(R.id.icon)
@@ -78,9 +70,7 @@ public class Weather3Adapter extends RecyclerView.Adapter<Weather3Adapter.ViewHo
 
         ViewHolder(View itemView) {
             super(itemView);
-            ButterKnife.bind(this, itemView);
         }
     }
-
 }
 
