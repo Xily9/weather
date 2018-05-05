@@ -8,8 +8,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.xily.weather.adapter.CityAdapter;
-
 import java.util.List;
 
 import butterknife.ButterKnife;
@@ -24,21 +22,33 @@ import butterknife.ButterKnife;
  */
 
 public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends RecyclerView.Adapter<T> {
-    protected Context mContext;
-    protected List<U> mList;
-    private CityAdapter.onClickListener onClickListener;
-    private CityAdapter.onLongClickListener onLongClickListener;
+    private Context mContext;
+    private List<U> mList;
+    private OnClickListener onClickListener;
+    private OnLongClickListener onLongClickListener;
+
+    public Context getContext() {
+        return mContext;
+    }
+
+    public List<U> getList() {
+        return mList;
+    }
+
+    public void setList(List<U> mList) {
+        this.mList = mList;
+    }
 
     public BaseAdapter(Context mContext, List<U> mList) {
         this.mContext = mContext;
         this.mList = mList;
     }
 
-    public void setOnClickListener(CityAdapter.onClickListener onClickListener) {
+    public void setOnClickListener(OnClickListener onClickListener) {
         this.onClickListener = onClickListener;
     }
 
-    public void setOnLongClickListener(CityAdapter.onLongClickListener onLongClickListener) {
+    public void setOnLongClickListener(OnLongClickListener onLongClickListener) {
         this.onLongClickListener = onLongClickListener;
     }
 
@@ -62,7 +72,7 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
     @Override
     public void onBindViewHolder(@NonNull T holder, int position) {
         if (onClickListener != null)
-            holder.itemView.setOnClickListener(view -> onClickListener.onclick(position));
+            holder.itemView.setOnClickListener(view -> onClickListener.onClick(position));
         if (onLongClickListener != null)
             holder.itemView.setOnLongClickListener(view -> onLongClickListener.onLongClick(position));
         onBindViewHolder(holder, position, mList.get(position));
@@ -70,9 +80,6 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
 
     protected abstract void onBindViewHolder(@NonNull T holder, int position, U value);
 
-    public void setList(List<U> mList) {
-        this.mList = mList;
-    }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
 
@@ -82,11 +89,11 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
         }
     }
 
-    public interface onClickListener {
-        void onclick(int position);
+    public interface OnClickListener {
+        void onClick(int position);
     }
 
-    public interface onLongClickListener {
+    public interface OnLongClickListener {
         boolean onLongClick(int position);
     }
 }

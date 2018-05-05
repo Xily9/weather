@@ -39,11 +39,11 @@
                     android:textSize="30sp" />
 
                 <TextView
+                    android:id="@+id/versionName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="5dp"
-                    android:text="Ver.0.1 alpha1" />
+                    android:layout_marginTop="5dp" />
             </LinearLayout>
 
             <TextView
@@ -91,13 +91,19 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="30dp"
                 android:layout_marginTop="5dp"
                 android:text="org.litepal.android:core" />
 
             <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="com.github.bumptech.glide:glide" />
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
                 android:layout_marginBottom="10dp"
                 android:gravity="center_horizontal"
                 android:text="Copyright © 2018 Xily.All Rights Reserved." />

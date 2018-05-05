@@ -1,5 +1,6 @@
 package com.xily.weather.service;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -10,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.BitmapFactory;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -33,18 +35,15 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class WeatherService extends Service {
-    private Subscription subscription;
     private LocalBroadcastManager localBroadcastManager;
     private myBroadcastReceiver myBroadcastReceiver;
     private PreferenceUtil preferenceUtil;
+    private PendingIntent pendingIntent;
     private boolean isForeground;
     private int id = 2;
     private static Map<String, Integer> map = new HashMap<String, Integer>() {{
@@ -68,14 +67,21 @@ public class WeatherService extends Service {
             startNotification(false);
         }
         if (isAutoUpdate) {
-            startTimer();
+            runTask();
         }
         localBroadcastManager = LocalBroadcastManager.getInstance(this);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
         myBroadcastReceiver = new myBroadcastReceiver();
         localBroadcastManager.registerReceiver(myBroadcastReceiver, intentFilter);
+        startTimer();
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    private void startTimer() {
+        Intent i = new Intent(this, WeatherService.class);
+        pendingIntent = PendingIntent.getService(this, 0, i, 0);
+        getAlarmManager().set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 60 * 60 * 1000, pendingIntent);
     }
 
     private void startNotification(boolean isUpdate) {
@@ -123,12 +129,16 @@ public class WeatherService extends Service {
         return (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
     }
 
+    private AlarmManager getAlarmManager() {
+        return (AlarmManager) getSystemService(ALARM_SERVICE);
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
         localBroadcastManager.unregisterReceiver(myBroadcastReceiver);
-        if (subscription != null && subscription.isUnsubscribed()) {
-            subscription.unsubscribe();
+        if (pendingIntent != null) {
+            getAlarmManager().cancel(pendingIntent);
         }
     }
 
@@ -137,58 +147,53 @@ public class WeatherService extends Service {
         return null;
     }
 
-    private void startTimer() {
-        subscription = Observable.interval(1, TimeUnit.HOURS)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(o -> {
-                    Calendar calendar = Calendar.getInstance();
-                    int hour = calendar.get(Calendar.HOUR_OF_DAY);
-                    boolean nightNoUpdate = preferenceUtil.get("nightNoUpdate", false);
-                    if ((nightNoUpdate && hour < 23 && hour >= 6) || !nightNoUpdate) {
-                        List<CityList> cityList = DataSupport.findAll(CityList.class);
-                        Observable.from(cityList)
-                                .flatMap(cityList1 -> RetrofitHelper.getMeiZuWeatherApi()
-                                        .getWeather(String.valueOf(cityList1.getWeatherId()))
-                                        .subscribeOn(Schedulers.io())
-                                        .doOnNext(weatherInfo -> {
-                                            WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
-                                            CityList cityListUpdate = new CityList();
-                                            cityListUpdate.setWeatherData(new Gson().toJson(weatherInfo));
-                                            cityListUpdate.setUpdateTime(System.currentTimeMillis());
-                                            cityListUpdate.setUpdateTimeStr(valueBean.getRealtime().getTime().substring(11, 16));
-                                            cityListUpdate.update(cityList1.getId());
-                                            if (preferenceUtil.get("alarm", false)) {
-                                                for (WeatherInfo.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
-                                                    List<Alarms> alarms = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(Alarms.class);
-                                                    if (alarms.isEmpty()) {
-                                                        getNotificationManager().notify(id++, getNotification(alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), cityList1.getId()));
-                                                        Alarms alarms1 = new Alarms();
-                                                        alarms1.setNotificationId(alarmsBean.getAlarmId());
-                                                        alarms1.save();
-                                                    }
-                                                }
-                                            }
-                                            if (preferenceUtil.get("rain", false)) {
-                                                String day = String.valueOf(calendar.get(Calendar.YEAR)) + calendar.get(Calendar.MONTH) + calendar.get(Calendar.DAY_OF_MONTH);
-                                                String rainNotificationTime = preferenceUtil.get("rainNotificationTime", "");
-                                                if (hour > 6 && !rainNotificationTime.equals(day)) {
-                                                    preferenceUtil.put("rainNotificationTime", day);
-                                                    if (valueBean.getWeathers().get(0).getWeather().contains("雨")) {
-                                                        getNotificationManager().notify(id++, getNotification("今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!"));
-                                                    }
-                                                }
-                                            }
-                                            boolean notification = preferenceUtil.get("notification", false);
-                                            if (notification) {
-                                                startNotification(true);
-                                            }
-                                            Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".WEATHER_BROADCAST");
-                                            sendBroadcast(intent);
-                                        }))
-                                .subscribe();
-                    }
-                });
+    private void runTask() {
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        boolean nightNoUpdate = preferenceUtil.get("nightNoUpdate", false);
+        if ((nightNoUpdate && hour < 23 && hour >= 6) || !nightNoUpdate) {
+            List<CityList> cityList = DataSupport.findAll(CityList.class);
+            Observable.from(cityList)
+                    .flatMap(cityList1 -> RetrofitHelper.getMeiZuWeatherApi()
+                            .getWeather(String.valueOf(cityList1.getWeatherId()))
+                            .subscribeOn(Schedulers.io())
+                            .doOnNext(weatherInfo -> {
+                                WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
+                                CityList cityListUpdate = new CityList();
+                                cityListUpdate.setWeatherData(new Gson().toJson(weatherInfo));
+                                cityListUpdate.setUpdateTime(System.currentTimeMillis());
+                                cityListUpdate.setUpdateTimeStr(valueBean.getRealtime().getTime().substring(11, 16));
+                                cityListUpdate.update(cityList1.getId());
+                                if (preferenceUtil.get("alarm", false)) {
+                                    for (WeatherInfo.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
+                                        List<Alarms> alarms = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(Alarms.class);
+                                        if (alarms.isEmpty()) {
+                                            getNotificationManager().notify(id++, getNotification(alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), cityList1.getId()));
+                                            Alarms alarms1 = new Alarms();
+                                            alarms1.setNotificationId(alarmsBean.getAlarmId());
+                                            alarms1.save();
+                                        }
+                                    }
+                                }
+                                if (preferenceUtil.get("rain", false)) {
+                                    String day = String.valueOf(calendar.get(Calendar.YEAR)) + calendar.get(Calendar.MONTH) + calendar.get(Calendar.DAY_OF_MONTH);
+                                    String rainNotificationTime = preferenceUtil.get("rainNotificationTime", "");
+                                    if (hour > 6 && !rainNotificationTime.equals(day)) {
+                                        preferenceUtil.put("rainNotificationTime", day);
+                                        if (valueBean.getWeathers().get(0).getWeather().contains("雨")) {
+                                            getNotificationManager().notify(id++, getNotification("今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!"));
+                                        }
+                                    }
+                                }
+                                boolean notification = preferenceUtil.get("notification", false);
+                                if (notification) {
+                                    startNotification(true);
+                                }
+                                Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".WEATHER_BROADCAST");
+                                sendBroadcast(intent);
+                            }))
+                    .subscribe();
+        }
     }
 
     private Notification getNotification(String title, String content) {
@@ -236,11 +241,6 @@ public class WeatherService extends Service {
                     stopForeground(true);
                     isForeground = false;
                 }
-            }
-            if (isAutoUpdate && subscription == null) {
-                startTimer();
-            } else if (!isAutoUpdate && subscription != null && subscription.isUnsubscribed()) {
-                subscription.unsubscribe();
             }
 
             if (!notification && !isAutoUpdate)

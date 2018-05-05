@@ -2,9 +2,7 @@ package com.xily.weather.adapter;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -37,13 +35,6 @@ public class ForecastAdapter extends BaseAdapter<ForecastAdapter.ViewHolder, Wea
         super(mContext, mList);
     }
 
-
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new ViewHolder(LayoutInflater.from(mContext).inflate(R.layout.layout_item_forecast, parent, false));
-    }
-
     @Override
     protected void onBindViewHolder(@NonNull ViewHolder holder, int position, WeatherInfo.ValueBean.WeathersBean value) {
         holder.temperature.setText(value.getTemp_day_c() + "/" + value.getTemp_night_c() + "°C");
@@ -68,7 +59,7 @@ public class ForecastAdapter extends BaseAdapter<ForecastAdapter.ViewHolder, Wea
 
     @Override
     protected ViewHolder getViewHolder(View view) {
-        return null;
+        return new ViewHolder(view);
     }
 
     class ViewHolder extends BaseAdapter.ViewHolder {

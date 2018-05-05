@@ -6,13 +6,14 @@ android {
         applicationId "com.xily.weather"
         minSdkVersion 21
         targetSdkVersion 27
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "V 1.0.3.20180505"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        resConfigs "zh-rCN"
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

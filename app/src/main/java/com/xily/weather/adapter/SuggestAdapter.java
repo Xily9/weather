@@ -12,7 +12,6 @@ import com.xily.weather.entity.WeatherInfo;
 import java.util.List;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
 
 public class SuggestAdapter extends BaseAdapter<SuggestAdapter.ViewHolder, WeatherInfo.ValueBean.IndexesBean> {
 
@@ -44,7 +43,6 @@ public class SuggestAdapter extends BaseAdapter<SuggestAdapter.ViewHolder, Weath
 
         ViewHolder(View itemView) {
             super(itemView);
-            ButterKnife.bind(this, itemView);
         }
     }
 

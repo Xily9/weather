@@ -56,6 +56,8 @@ public class SettingsActivity extends RxBaseActivity {
     Switch st4;
     @BindView(R.id.st_5)
     Switch st5;
+    @BindView(R.id.st_10)
+    Switch st10;
     private PreferenceUtil preferenceUtil;
     private LocalBroadcastManager localBroadcastManager;
     private List<CityList> cityLists;
@@ -86,6 +88,7 @@ public class SettingsActivity extends RxBaseActivity {
         st3.setChecked(preferenceUtil.get("rain", false));
         st4.setChecked(preferenceUtil.get("alarm", false));
         st5.setChecked(preferenceUtil.get("isAutoUpdate", false));
+        st10.setChecked(preferenceUtil.get("checkUpdate", true));
     }
 
     @Override
@@ -181,12 +184,45 @@ public class SettingsActivity extends RxBaseActivity {
 
     @OnClick(R.id.st_8)
     void setBgImg() {
-        checkPermission(1);
+        String[] choices = new String[]{"默认背景", "Bing每日一图", "自定义"};
+        new AlertDialog.Builder(this)
+                .setTitle("背景图设置")
+                .setSingleChoiceItems(choices, preferenceUtil.get("bgMode", 0), (dialog, which) -> {
+                    if (which == 2) {
+                        checkPermission(1);
+                    } else {
+                        preferenceUtil.put("bgMode", which);
+                        BusInfo busInfo = new BusInfo();
+                        busInfo.setStatus(1);
+                        RxBus.getInstance().post(busInfo);
+                    }
+                    dialog.dismiss();
+                })
+                .show();
     }
 
     @OnClick(R.id.st_9)
     void setNavImg() {
-        checkPermission(2);
+        String[] choices = new String[]{"默认背景", "自定义"};
+        new AlertDialog.Builder(this)
+                .setTitle("侧栏顶部背景设置")
+                .setSingleChoiceItems(choices, preferenceUtil.get("navMode", 0), (dialog, which) -> {
+                    if (which == 1) {
+                        checkPermission(2);
+                    } else {
+                        preferenceUtil.put("navMode", which);
+                        BusInfo busInfo = new BusInfo();
+                        busInfo.setStatus(1);
+                        RxBus.getInstance().post(busInfo);
+                    }
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
+    @OnCheckedChanged(R.id.st_10)
+    void setCheckUpdate(boolean isChecked) {
+        preferenceUtil.put("checkUpdate", isChecked);
     }
 
     private void checkPermission(int requestCode) {
@@ -262,8 +298,10 @@ public class SettingsActivity extends RxBaseActivity {
                         ToastUtil.ShortToast("获取图片失败!");
                     } else {
                         if (requestCode == 1) {
+                            preferenceUtil.put("bgMode", 2);
                             preferenceUtil.put("bgImgPath", imagePath);
                         } else {
+                            preferenceUtil.put("navMode", 1);
                             preferenceUtil.put("navImgPath", imagePath);
                         }
                         BusInfo busInfo = new BusInfo();

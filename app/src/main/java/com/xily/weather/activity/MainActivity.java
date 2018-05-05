@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
@@ -60,6 +61,7 @@ import com.xily.weather.entity.BaiduLocationInfo;
 import com.xily.weather.entity.BusInfo;
 import com.xily.weather.entity.SearchInfo;
 import com.xily.weather.entity.WeatherInfo;
+import com.xily.weather.network.OkHttpHelper;
 import com.xily.weather.network.RetrofitHelper;
 import com.xily.weather.rx.RxBus;
 import com.xily.weather.rx.RxHelper;
@@ -81,11 +83,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.OnClick;
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -110,7 +115,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     @BindView(R.id.li_dot)
     LinearLayout liDot;
     @BindView(R.id.empty)
-    TextView empty;
+    LinearLayout empty;
     @BindView(R.id.progress)
     ProgressBar progressBar;
     private AlertDialog dialog;
@@ -140,28 +145,69 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         initNavigationView();
         initRxBus();
         initCities();
-        checkVersion();
+        if (data.get("checkUpdate", true))
+            checkVersion();
     }
 
     private void loadBackgroundImage() {
-        SimpleTarget<Drawable> drawableSimpleTarget = new SimpleTarget<Drawable>() {
+        int bgMode = data.get("bgMode", 0);
+        switch (bgMode) {
+            case 0:
+                setDefaultPic();
+                break;
+            case 1:
+                Calendar calendar = Calendar.getInstance();
+                String day = String.valueOf(calendar.get(Calendar.YEAR)) + calendar.get(Calendar.MONTH) + calendar.get(Calendar.DAY_OF_MONTH);
+                String bingPicTime = data.get("bingPicTime", "");
+                if (!bingPicTime.equals(day)) {
+                    OkHttpHelper.get("http://guolin.tech/api/bing_pic", new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                            e.printStackTrace();
+                            setBingPic(null);
+                        }
+
+                        @Override
+                        public void onResponse(Call call, Response response) throws IOException {
+                            String url = response.body().string();
+                            if (!TextUtils.isEmpty(url)) {
+                                data.put("bingPicUrl", url);
+                                data.put("bingPicTime", day);
+                            }
+                            setBingPic(url);
+                        }
+                    });
+                } else {
+                    setBingPic(null);
+                }
+                break;
+            case 2:
+                String imagePath = data.get("bgImgPath", "");
+                Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+                mDrawerLayout.setBackground(new BitmapDrawable(getResources(), bitmap));
+                break;
+        }
+    }
+
+    private void setBingPic(String url) {
+        if (TextUtils.isEmpty(url)) {
+            url = data.get("bingPicUrl", "");
+            if (url.isEmpty()) {
+                setDefaultPic();
+                return;
+            }
+        }
+        String finalUrl = url;
+        runOnUiThread(() -> Glide.with(this).load(finalUrl).into(new SimpleTarget<Drawable>() {
             @Override
             public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
                 mDrawerLayout.setBackground(resource);
             }
-        };
-        String imagePath = data.get("bgImgPath", "");
-        if (TextUtils.isEmpty(imagePath)) {
-           /* Glide.with(this)
-                    .load(R.drawable.bg)
-                    .into(drawableSimpleTarget);*/
-            mDrawerLayout.setBackgroundResource(R.drawable.bg);
-        } else {
-            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-            Glide.with(this)
-                    .load(bitmap)
-                    .into(drawableSimpleTarget);
-        }
+        }));
+    }
+
+    private void setDefaultPic() {
+        mDrawerLayout.setBackgroundResource(R.drawable.bg);
     }
 
     @Override
@@ -212,6 +258,12 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
             textView.setRotation(180);
             liDot.addView(textView, layoutParams);
         }
+        title.setText(cityList.get(pos).getCityName());
+        if (!TextUtils.isEmpty(cityList.get(pos).getUpdateTimeStr()))
+            updateTime.setText(cityList.get(pos).getUpdateTimeStr() + "更新");
+    }
+
+    private void activeTimer() {
         subscription = Observable.just(null)
                 .delay(1000, TimeUnit.MILLISECONDS)
                 .compose(bindToLifecycle())
@@ -220,9 +272,6 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                     liDot.setVisibility(View.GONE);
                     liDot.startAnimation(AnimationUtils.loadAnimation(this, R.anim.alpha_out));
                 });
-        title.setText(cityList.get(pos).getCityName());
-        if (!TextUtils.isEmpty(cityList.get(pos).getUpdateTimeStr()))
-            updateTime.setText(cityList.get(pos).getUpdateTimeStr() + "更新");
     }
 
     private void initCities() {
@@ -230,6 +279,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         if (!cityList.isEmpty()) {
             initViewPager();
             setPos(0);
+            activeTimer();
             startService();
         } else {
             empty.setVisibility(View.VISIBLE);
@@ -470,14 +520,12 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         View sideMenuView = mNavigationView.inflateHeaderView(R.layout.layout_side_menu);
         String imagePath = data.get("navImgPath", "");
         ImageView imageView = sideMenuView.findViewById(R.id.nav_image);
-        if (TextUtils.isEmpty(imagePath)) {
-            imageView.setMinimumHeight(DeviceUtil.dp2px(200));
+        if (data.get("navMode", 0) == 0 || TextUtils.isEmpty(imagePath)) {
+            imageView.setMaxHeight(DeviceUtil.dp2px(200));
             imageView.setImageResource(R.drawable.bg);
         } else {
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-            Glide.with(this)
-                    .load(bitmap)
-                    .into(imageView);
+            imageView.setImageDrawable(new BitmapDrawable(getResources(), bitmap));
         }
     }
 
@@ -527,11 +575,14 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
 
             @Override
             public void onPageScrollStateChanged(int state) {
+                LogUtil.d("scrool", String.valueOf(state));
                 if (state == 1) {
                     if (subscription != null && !subscription.isUnsubscribed()) {
                         subscription.unsubscribe();
                     }
                     liDot.setVisibility(View.VISIBLE);
+                } else if (state == 0) {
+                    activeTimer();
                 }
             }
         });
@@ -566,7 +617,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                                     .setMessage("当前版本：" + versionName + "\n" +
                                             "新版本：" + dataBean.getVersion_name() + "\n" +
                                             "更新时间：" + dataBean.getTime() + "\n" +
-                                            "更新内容：" + dataBean.getText())
+                                            "更新内容：\n" + dataBean.getText())
                                     .setPositiveButton("升级", (a, b) -> update(dataBean.getDownload_url()))
                                     .setCancelable(false);
                             if (dataBean.getVersion_force_update_under() <= version) {

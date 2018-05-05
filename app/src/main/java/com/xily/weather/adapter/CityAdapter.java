@@ -3,9 +3,7 @@ package com.xily.weather.adapter;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.google.gson.Gson;
@@ -22,12 +20,6 @@ public class CityAdapter extends BaseAdapter<CityAdapter.ViewHolder, CityList> {
 
     public CityAdapter(Context mContext, List<CityList> mList) {
         super(mContext, mList);
-    }
-
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new ViewHolder(LayoutInflater.from(mContext).inflate(R.layout.layout_item_city, parent, false));
     }
 
     @Override

@@ -5,6 +5,7 @@
         <item name="colorPrimary">@color/blue</item>
         <item name="colorPrimaryDark">@color/blue</item>
         <item name="colorAccent">@color/blue</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemeGreen" parent="Theme.AppCompat.Light.NoActionBar">
@@ -12,6 +13,7 @@
         <item name="colorPrimary">@color/green</item>
         <item name="colorPrimaryDark">@color/green</item>
         <item name="colorAccent">@color/green</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemePink" parent="Theme.AppCompat.Light.NoActionBar">
@@ -19,6 +21,7 @@
         <item name="colorPrimary">@color/pink</item>
         <item name="colorPrimaryDark">@color/pink</item>
         <item name="colorAccent">@color/pink</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemeRed" parent="Theme.AppCompat.Light.NoActionBar">
@@ -26,6 +29,7 @@
         <item name="colorPrimary">@color/red</item>
         <item name="colorPrimaryDark">@color/red</item>
         <item name="colorAccent">@color/red</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemePurple" parent="Theme.AppCompat.Light.NoActionBar">
@@ -33,6 +37,7 @@
         <item name="colorPrimary">@color/purple</item>
         <item name="colorPrimaryDark">@color/purple</item>
         <item name="colorAccent">@color/purple</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemeOrange" parent="Theme.AppCompat.Light.NoActionBar">
@@ -40,6 +45,7 @@
         <item name="colorPrimary">@color/orange</item>
         <item name="colorPrimaryDark">@color/orange</item>
         <item name="colorAccent">@color/orange</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemeTeal" parent="Theme.AppCompat.Light.NoActionBar">
@@ -47,6 +53,7 @@
         <item name="colorPrimary">@color/teal</item>
         <item name="colorPrimaryDark">@color/teal</item>
         <item name="colorAccent">@color/teal</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemeBrown" parent="Theme.AppCompat.Light.NoActionBar">
@@ -54,6 +61,7 @@
         <item name="colorPrimary">@color/brown</item>
         <item name="colorPrimaryDark">@color/brown</item>
         <item name="colorAccent">@color/brown</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemeDarkPurple" parent="Theme.AppCompat.Light.NoActionBar">
@@ -61,6 +69,7 @@
         <item name="colorPrimary">@color/dark_purple</item>
         <item name="colorPrimaryDark">@color/dark_purple</item>
         <item name="colorAccent">@color/dark_purple</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 
     <style name="AppThemeDarkBlue" parent="Theme.AppCompat.Light.NoActionBar">
@@ -68,5 +77,6 @@
         <item name="colorPrimary">@color/dark_blue</item>
         <item name="colorPrimaryDark">@color/dark_blue</item>
         <item name="colorAccent">@color/dark_blue</item>
+        <item name="android:listDivider">@android:color/transparent</item>
     </style>
 </resources>
