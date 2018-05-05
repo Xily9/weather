@@ -54,7 +54,6 @@ import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.adapter.ForecastAdapter;
 import com.xily.weather.adapter.SuggestAdapter;
-import com.xily.weather.adapter.Weather3Adapter;
 import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.db.CityList;
 import com.xily.weather.entity.BaiduLocationInfo;
@@ -74,6 +73,7 @@ import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.utils.ThemeUtil;
 import com.xily.weather.utils.ToastUtil;
 import com.xily.weather.widget.BounceBackViewPager;
+import com.xily.weather.widget.Weather3View;
 
 import org.litepal.crud.DataSupport;
 
@@ -300,6 +300,8 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                         .setNegativeButton("取消", (a, b) -> ToastUtil.ShortToast("您已取消权限申请,无法定位!"))
                         .setCancelable(false)
                         .show();
+            } else {
+                findLocation();
             }
         }
     }
@@ -445,11 +447,14 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
             setOrientation(LinearLayoutManager.HORIZONTAL);
         }});
         recyclerView.setAdapter(new ForecastAdapter(this, valueBean.getWeathers()));
+        /*
         RecyclerView recyclerView1 = view.findViewById(R.id.weather3);
         recyclerView1.setLayoutManager(new LinearLayoutManager(this) {{
             setOrientation(LinearLayoutManager.HORIZONTAL);
         }});
-        recyclerView1.setAdapter(new Weather3Adapter(this, valueBean.getWeatherDetailsInfo().getWeather3HoursDetailsInfos()));
+        recyclerView1.setAdapter(new Weather3Adapter(this, ));
+        */
+        ((Weather3View) view.findViewById(R.id.weather3)).setData(valueBean.getWeatherDetailsInfo().getWeather3HoursDetailsInfos());
         setTextView(view, R.id.pm25, valueBean.getPm25().getPm25());
         setTextView(view, R.id.pm10, valueBean.getPm25().getPm10());
         setTextView(view, R.id.so2, valueBean.getPm25().getSo2());

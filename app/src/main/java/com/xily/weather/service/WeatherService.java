@@ -40,13 +40,12 @@ import rx.Observable;
 import rx.schedulers.Schedulers;
 
 public class WeatherService extends Service {
-    private LocalBroadcastManager localBroadcastManager;
     private myBroadcastReceiver myBroadcastReceiver;
     private PreferenceUtil preferenceUtil;
     private PendingIntent pendingIntent;
     private boolean isForeground;
     private int id = 2;
-    private static Map<String, Integer> map = new HashMap<String, Integer>() {{
+    private Map<String, Integer> map = new HashMap<String, Integer>() {{
         put("0", R.drawable.weather_0);
         put("1", R.drawable.weather_1);
         put("2", R.drawable.weather_2);
@@ -69,12 +68,18 @@ public class WeatherService extends Service {
         if (isAutoUpdate) {
             runTask();
         }
-        localBroadcastManager = LocalBroadcastManager.getInstance(this);
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
-        myBroadcastReceiver = new myBroadcastReceiver();
-        localBroadcastManager.registerReceiver(myBroadcastReceiver, intentFilter);
-        startTimer();
+        if (!notification && !isAutoUpdate) {
+            if (pendingIntent != null) {
+                getAlarmManager().cancel(pendingIntent);
+            }
+            stopSelf();
+        } else {
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
+            myBroadcastReceiver = new myBroadcastReceiver();
+            LocalBroadcastManager.getInstance(this).registerReceiver(myBroadcastReceiver, intentFilter);
+            startTimer();
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -136,10 +141,8 @@ public class WeatherService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        localBroadcastManager.unregisterReceiver(myBroadcastReceiver);
-        if (pendingIntent != null) {
-            getAlarmManager().cancel(pendingIntent);
-        }
+        if (myBroadcastReceiver != null)
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(myBroadcastReceiver);
     }
 
     @Override
@@ -243,8 +246,12 @@ public class WeatherService extends Service {
                 }
             }
 
-            if (!notification && !isAutoUpdate)
+            if (!notification && !isAutoUpdate) {
+                if (pendingIntent != null) {
+                    getAlarmManager().cancel(pendingIntent);
+                }
                 stopSelf();
+            }
         }
     }
 }

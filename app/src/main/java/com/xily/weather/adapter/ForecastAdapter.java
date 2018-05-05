@@ -19,7 +19,7 @@ import butterknife.BindView;
 
 public class ForecastAdapter extends BaseAdapter<ForecastAdapter.ViewHolder, WeatherInfo.ValueBean.WeathersBean> {
 
-    private static Map<String, Integer> map = new HashMap<String, Integer>() {{
+    private Map<String, Integer> map = new HashMap<String, Integer>() {{
         put("0", R.drawable.weather_0);
         put("1", R.drawable.weather_1);
         put("2", R.drawable.weather_2);
