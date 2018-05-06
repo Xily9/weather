@@ -16,9 +16,9 @@ import android.view.View;
 import com.xily.weather.R;
 import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.utils.LogUtil;
+import com.xily.weather.utils.WeatherUtil;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,17 +27,7 @@ public class Weather3View extends View {
     private Paint paint = new Paint();
     private int width = 60, oldX, oldY, w, h, paddingTop = 10;
     private DisplayMetrics dm = getResources().getDisplayMetrics();
-    private Map<String, Integer> map = new HashMap<String, Integer>() {{
-        put("0", R.drawable.weather_0);
-        put("1", R.drawable.weather_1);
-        put("2", R.drawable.weather_2);
-        put("3", R.drawable.weather_3);
-        put("4", R.drawable.weather_4);
-        put("7", R.drawable.weather_7);
-        put("8", R.drawable.weather_8);
-        put("9", R.drawable.weather_9);
-        put("29", R.drawable.weather_29);
-    }};
+    private Map<String, Integer> map = WeatherUtil.getWeatherIcons();
     public List<WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> weather3HoursDetailsInfosBeans = new ArrayList<>();
 
     public Weather3View(Context context) {
@@ -70,7 +60,6 @@ public class Weather3View extends View {
         if (weather3HoursDetailsInfosBeans.isEmpty()) return;
         paint.setAntiAlias(true);
         paint.setColor(Color.WHITE);
-        paint.setStyle(Paint.Style.STROKE);
         paint.setTextSize(dp2px(13));
         paint.setTextAlign(Paint.Align.CENTER);
         int x = width / 2;
@@ -86,10 +75,11 @@ public class Weather3View extends View {
         for (int i = 0; i < weather3HoursDetailsInfosBeans.size(); i++) {
             WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean value = weather3HoursDetailsInfosBeans.get(i);
             int temp = Integer.valueOf(value.getHighestTemperature());
-            paint.setStrokeWidth(dp2px(4));
+            paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(dp2px(x), dp2px(h1 * (max - temp) + paddingTop + 10), dp2px(2), paint);
             if (i < weather3HoursDetailsInfosBeans.size() - 1) {
                 int nextTemp = Integer.valueOf(weather3HoursDetailsInfosBeans.get(i + 1).getHighestTemperature());
+                paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(dp2px(2));
                 canvas.drawLine(dp2px(x), dp2px(h1 * (max - temp) + paddingTop + 10), dp2px(x + width), dp2px(h1 * (max - nextTemp) + paddingTop + 10), paint);
             }

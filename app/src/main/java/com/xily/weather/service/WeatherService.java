@@ -28,11 +28,11 @@ import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.network.RetrofitHelper;
 import com.xily.weather.utils.LogUtil;
 import com.xily.weather.utils.PreferenceUtil;
+import com.xily.weather.utils.WeatherUtil;
 
 import org.litepal.crud.DataSupport;
 
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,17 +45,7 @@ public class WeatherService extends Service {
     private PendingIntent pendingIntent;
     private boolean isForeground;
     private int id = 2;
-    private Map<String, Integer> map = new HashMap<String, Integer>() {{
-        put("0", R.drawable.weather_0);
-        put("1", R.drawable.weather_1);
-        put("2", R.drawable.weather_2);
-        put("3", R.drawable.weather_3);
-        put("4", R.drawable.weather_4);
-        put("7", R.drawable.weather_7);
-        put("8", R.drawable.weather_8);
-        put("9", R.drawable.weather_9);
-        put("29", R.drawable.weather_29);
-    }};
+    private Map<String, Integer> map = WeatherUtil.getWeatherIcons();
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -171,7 +161,7 @@ public class WeatherService extends Service {
                                     for (WeatherInfo.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
                                         List<Alarms> alarms = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(Alarms.class);
                                         if (alarms.isEmpty()) {
-                                            getNotificationManager().notify(id++, getNotification(alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), cityList1.getId()));
+                                            getNotificationManager().notify(id++, getNotification(cityList1.getCityName() + " " + alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), cityList1.getId()));
                                             Alarms alarms1 = new Alarms();
                                             alarms1.setNotificationId(alarmsBean.getAlarmId());
                                             alarms1.save();
@@ -184,7 +174,7 @@ public class WeatherService extends Service {
                                     if (hour > 6 && !rainNotificationTime.equals(day)) {
                                         preferenceUtil.put("rainNotificationTime", day);
                                         if (valueBean.getWeathers().get(0).getWeather().contains("雨")) {
-                                            getNotificationManager().notify(id++, getNotification("今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!"));
+                                            getNotificationManager().notify(id++, getNotification(cityList1.getCityName() + "今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!"));
                                         }
                                     }
                                 }
@@ -215,17 +205,15 @@ public class WeatherService extends Service {
         } else
             intent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "weather")
+        return new NotificationCompat.Builder(this, "weather")
                 .setWhen(System.currentTimeMillis())
                 .setContentIntent(pendingIntent)
                 .setContentTitle(title)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
-        if (type == 1)
-            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(content));
-        else
-            builder.setContentText(content);
-        return builder.build();
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
+                .setContentText(content)
+                .setAutoCancel(true)
+                .build();
     }
 
     class myBroadcastReceiver extends BroadcastReceiver {
