@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
+    android:layout_height="match_parent"
+    android:padding="10dp">
     <ImageView
         android:id="@+id/icon"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_centerVertical="true"
-        android:layout_marginLeft="5dp"
         android:tint="#333" />
 
     <LinearLayout
@@ -17,7 +16,7 @@
         android:layout_toRightOf="@id/icon"
         android:orientation="vertical"
         android:layout_centerVertical="true"
-        android:layout_marginLeft="20dp">
+        android:layout_marginLeft="30dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -36,12 +35,12 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/updateTime"
-        android:textColor="#333"
-        android:textSize="13sp"
+        android:id="@+id/temperature"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="7dp" />
+        android:layout_centerVertical="true"
+        android:textSize="40sp"
+        android:textColor="#333"
+        android:fontFamily="sans-serif-thin" />
 </RelativeLayout>

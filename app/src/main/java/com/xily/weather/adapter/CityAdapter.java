@@ -39,9 +39,9 @@ public class CityAdapter extends BaseAdapter<CityAdapter.ViewHolder, CityList> {
             holder.air.setText("空气质量" + valueBean.getPm25().getQuality());
             holder.weather.setText(valueBean.getRealtime().getWeather());
             holder.temperature.setText(valueBean.getRealtime().getTemp() + "°");
-            holder.wind.setText(valueBean.getRealtime().getWD() + valueBean.getRealtime().getWS());
+            holder.wind.setText(valueBean.getRealtime().getWd() + valueBean.getRealtime().getWs());
             holder.todayTemp.setText(valueBean.getWeathers().get(0).getTemp_day_c() + " / " + valueBean.getWeathers().get(0).getTemp_night_c() + "°");
-            holder.wet.setText("湿度" + valueBean.getRealtime().getSD() + "%");
+            holder.wet.setText("湿度" + valueBean.getRealtime().getSd() + "%");
         }
     }
 

@@ -1,12 +1,9 @@
 package com.xily.weather.utils;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.Color;
-import android.location.Location;
-import android.location.LocationManager;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
@@ -22,7 +19,6 @@ import static android.content.Context.ACTIVITY_SERVICE;
 public class DeviceUtil {
 
     private static final DisplayMetrics outMetrics = MyApplication.getInstance().getResources().getDisplayMetrics();
-    private static Location location;
 
     /**
      * 获取设备宽度
@@ -75,14 +71,6 @@ public class DeviceUtil {
 
     public static String getCacheDir() {
         return MyApplication.getInstance().getExternalCacheDir().getPath();
-    }
-
-    @SuppressLint("MissingPermission")
-    public static Location getLocation() {
-        LocationManager locationManager = (LocationManager) MyApplication.getInstance().getSystemService(Context.LOCATION_SERVICE);
-        if (location == null)
-            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-        return location;
     }
 
     public static void setStatusBarUpper(Activity activity) {

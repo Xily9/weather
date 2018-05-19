@@ -14,7 +14,6 @@ import android.os.IBinder;
 import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
-import android.text.TextUtils;
 import android.widget.RemoteViews;
 
 import com.google.gson.Gson;
@@ -92,7 +91,7 @@ public class WeatherService extends Service {
             remoteViews.setTextViewText(R.id.cityName, cityList.getCityName());
             if (weatherInfo != null) {
                 WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
-                remoteViews.setTextViewText(R.id.content, valueBean.getRealtime().getWeather() + " " + valueBean.getRealtime().getTemp() + "°C" + " " + valueBean.getPm25().getQuality());
+                remoteViews.setTextViewText(R.id.content, valueBean.getRealtime().getWeather() + "   " + valueBean.getPm25().getAqi() + " " + valueBean.getPm25().getQuality() + "   " + valueBean.getRealtime().getWd() + valueBean.getRealtime().getWs());
                 if (map.containsKey(valueBean.getRealtime().getImg())) {
                     builder.setSmallIcon(map.get(valueBean.getRealtime().getImg()));
                     remoteViews.setImageViewResource(R.id.icon, map.get(valueBean.getRealtime().getImg()));
@@ -101,14 +100,15 @@ public class WeatherService extends Service {
                     remoteViews.setImageViewResource(R.id.icon, R.drawable.weather_na);
                     LogUtil.d("unknown", valueBean.getRealtime().getWeather() + valueBean.getRealtime().getImg());
                 }
+                remoteViews.setTextViewText(R.id.temperature, valueBean.getRealtime().getTemp() + "°");
             } else {
                 builder.setContentText("N/A");
                 builder.setSmallIcon(R.drawable.weather_na);
                 remoteViews.setImageViewResource(R.id.icon, R.drawable.weather_na);
-            }
+            }/*
             if (!TextUtils.isEmpty(cityList.getUpdateTimeStr())) {
                 remoteViews.setTextViewText(R.id.updateTime, "更新于 " + cityList.getUpdateTimeStr());
-            }
+            }*/
             builder.setCustomContentView(remoteViews);
             Notification notification = builder.build();
             if (isUpdate) {

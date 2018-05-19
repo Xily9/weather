@@ -82,14 +82,14 @@ public class CityActivity extends RxBaseActivity {
             CityAdapter adapter = new CityAdapter(this, cityList);
             mRecycleView.setAdapter(adapter);
             mRecycleView.setLayoutManager(new LinearLayoutManager(this));
-            adapter.setOnClickListener(position -> {
+            adapter.setOnItemClickListener(position -> {
                 BusInfo busInfo = new BusInfo();
                 busInfo.setStatus(2);
                 busInfo.setPosition(position);
                 RxBus.getInstance().post(busInfo);
                 finish();
             });
-            adapter.setOnLongClickListener(position -> {
+            adapter.setOnItemLongClickListener(position -> {
                 int id = cityList.get(position).getId();
                 DataSupport.delete(CityList.class, id);
                 SnackbarUtil.showMessage(coordinatorLayout, "删除成功!");

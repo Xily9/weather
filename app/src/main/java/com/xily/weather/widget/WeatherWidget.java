@@ -54,7 +54,7 @@ public class WeatherWidget extends AppWidgetProvider {
             remoteViews.setTextViewText(R.id.cityName, cityList.getCityName());
             if (weatherInfo != null) {
                 WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
-                remoteViews.setTextViewText(R.id.content, valueBean.getRealtime().getWeather() + "   " + valueBean.getPm25().getAqi() + " " + valueBean.getPm25().getQuality() + "   " + valueBean.getRealtime().getWD() + valueBean.getRealtime().getWS());
+                remoteViews.setTextViewText(R.id.content, valueBean.getRealtime().getWeather() + "   " + valueBean.getPm25().getAqi() + " " + valueBean.getPm25().getQuality() + "   " + valueBean.getRealtime().getWd() + valueBean.getRealtime().getWs());
                 if (map.containsKey(valueBean.getRealtime().getImg())) {
                     remoteViews.setImageViewResource(R.id.icon, map.get(valueBean.getRealtime().getImg()));
                 } else {

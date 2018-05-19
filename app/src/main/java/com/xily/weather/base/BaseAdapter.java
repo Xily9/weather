@@ -24,8 +24,8 @@ import butterknife.ButterKnife;
 public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends RecyclerView.Adapter<T> {
     private Context mContext;
     private List<U> mList;
-    private OnClickListener onClickListener;
-    private OnLongClickListener onLongClickListener;
+    private OnItemClickListener onItemClickListener;
+    private OnItemLongClickListener onItemLongClickListener;
 
     public Context getContext() {
         return mContext;
@@ -44,12 +44,12 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
         this.mList = mList;
     }
 
-    public void setOnClickListener(OnClickListener onClickListener) {
-        this.onClickListener = onClickListener;
+    public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
+        this.onItemClickListener = onItemClickListener;
     }
 
-    public void setOnLongClickListener(OnLongClickListener onLongClickListener) {
-        this.onLongClickListener = onLongClickListener;
+    public void setOnItemLongClickListener(OnItemLongClickListener onItemLongClickListener) {
+        this.onItemLongClickListener = onItemLongClickListener;
     }
 
     protected abstract
@@ -71,10 +71,10 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
 
     @Override
     public void onBindViewHolder(@NonNull T holder, int position) {
-        if (onClickListener != null)
-            holder.itemView.setOnClickListener(view -> onClickListener.onClick(position));
-        if (onLongClickListener != null)
-            holder.itemView.setOnLongClickListener(view -> onLongClickListener.onLongClick(position));
+        if (onItemClickListener != null)
+            holder.itemView.setOnClickListener(view -> onItemClickListener.onClick(position));
+        if (onItemLongClickListener != null)
+            holder.itemView.setOnLongClickListener(view -> onItemLongClickListener.onLongClick(position));
         onBindViewHolder(holder, position, mList.get(position));
     }
 
@@ -89,11 +89,11 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
         }
     }
 
-    public interface OnClickListener {
+    public interface OnItemClickListener {
         void onClick(int position);
     }
 
-    public interface OnLongClickListener {
+    public interface OnItemLongClickListener {
         boolean onLongClick(int position);
     }
 }

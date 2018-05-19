@@ -1,11 +1,13 @@
 package com.xily.weather.widget;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -25,6 +27,7 @@ import java.util.Map;
 public class Weather3View extends View {
     private Context context;
     private Paint paint = new Paint();
+    private Path path = new Path();
     private int width = 60, oldX, oldY, w, h, paddingTop = 10;
     private DisplayMetrics dm = getResources().getDisplayMetrics();
     private Map<String, Integer> map = WeatherUtil.getWeatherIcons();
@@ -54,14 +57,17 @@ public class Weather3View extends View {
         setMeasuredDimension(w, h);
     }
 
+    @SuppressLint("DrawAllocation")
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (weather3HoursDetailsInfosBeans.isEmpty()) return;
+        path.reset();
         paint.setAntiAlias(true);
         paint.setColor(Color.WHITE);
         paint.setTextSize(dp2px(13));
         paint.setTextAlign(Paint.Align.CENTER);
+        paint.setStyle(Paint.Style.FILL);
         int x = width / 2;
         int max, min;
         max = min = Integer.valueOf(weather3HoursDetailsInfosBeans.get(0).getHighestTemperature());
@@ -72,18 +78,14 @@ public class Weather3View extends View {
         }
         int h1 = 70 / (max - min);
         int h2 = 100;
+        path.moveTo(dp2px(x), dp2px(h1 * (max - Integer.valueOf(weather3HoursDetailsInfosBeans.get(0).getHighestTemperature())) + paddingTop + 10));
         for (int i = 0; i < weather3HoursDetailsInfosBeans.size(); i++) {
             WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean value = weather3HoursDetailsInfosBeans.get(i);
             int temp = Integer.valueOf(value.getHighestTemperature());
-            paint.setStyle(Paint.Style.FILL);
-            canvas.drawCircle(dp2px(x), dp2px(h1 * (max - temp) + paddingTop + 10), dp2px(2), paint);
-            if (i < weather3HoursDetailsInfosBeans.size() - 1) {
-                int nextTemp = Integer.valueOf(weather3HoursDetailsInfosBeans.get(i + 1).getHighestTemperature());
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(dp2px(2));
-                canvas.drawLine(dp2px(x), dp2px(h1 * (max - temp) + paddingTop + 10), dp2px(x + width), dp2px(h1 * (max - nextTemp) + paddingTop + 10), paint);
+            canvas.drawCircle(dp2px(x), dp2px(h1 * (max - temp) + paddingTop + 10), dp2px(3), paint);
+            if (i > 0) {
+                path.lineTo(dp2px(x), dp2px(h1 * (max - temp) + paddingTop + 10));
             }
-            paint.setStrokeWidth(0);
             canvas.drawText(temp + "°C", dp2px(x), dp2px(h1 * (max - temp) + paddingTop), paint);
             canvas.drawText(value.getStartTime().substring(11, 16), dp2px(x), dp2px(h2 + 25), paint);
             Bitmap bitmap;
@@ -100,6 +102,9 @@ public class Weather3View extends View {
             canvas.drawText(value.getWeather(), dp2px(x), dp2px(h2 + 95), paint);
             x += width;
         }
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(dp2px(2));
+        canvas.drawPath(path, paint);
     }
 
     /*
