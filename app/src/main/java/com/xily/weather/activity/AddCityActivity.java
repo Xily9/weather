@@ -86,6 +86,7 @@ public class AddCityActivity extends RxBaseActivity {
                     BusInfo busInfo = new BusInfo();
                     busInfo.setStatus(1);
                     RxBus.getInstance().post(busInfo);
+                    setResult(1);
                     finish();
                 } else {
                     SnackbarUtil.showMessage(getWindow().getDecorView(), "该城市已经被添加过!");

@@ -13,6 +13,7 @@ import com.xily.weather.adapter.AlarmAdapter;
 import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.db.CityList;
 import com.xily.weather.entity.WeatherInfo;
+import com.xily.weather.utils.LogUtil;
 
 import org.litepal.crud.DataSupport;
 
@@ -37,7 +38,8 @@ public class AlarmActivity extends RxBaseActivity {
     public void initViews(Bundle savedInstanceState) {
         initToolBar();
         Intent intent = getIntent();
-        id = intent.getIntExtra("id", -1);
+        id = intent.getIntExtra("alarmId", -1);
+        LogUtil.d("id", "" + id);
         if (id >= 0) {
             loadData();
         }

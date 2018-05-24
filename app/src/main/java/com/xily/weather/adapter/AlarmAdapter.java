@@ -25,18 +25,13 @@ public class AlarmAdapter extends BaseAdapter<AlarmAdapter.ViewHolder, WeatherIn
     }
 
     @Override
-    protected ViewHolder getViewHolder(View view) {
-        return new ViewHolder(view);
-    }
-
-    @Override
     protected void onBindViewHolder(@NonNull ViewHolder holder, int position, WeatherInfo.ValueBean.AlarmsBean alarmsBean) {
         holder.alarm.setText(alarmsBean.getAlarmTypeDesc() + "预警");
         holder.updateTime.setText(alarmsBean.getPublishTime());
         holder.content.setText(alarmsBean.getAlarmContent());
     }
 
-    class ViewHolder extends BaseAdapter.ViewHolder {
+    class ViewHolder extends BaseAdapter.BaseViewHolder {
         @BindView(R.id.alarm)
         TextView alarm;
         @BindView(R.id.updateTime)

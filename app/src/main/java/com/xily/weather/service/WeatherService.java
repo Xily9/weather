@@ -182,7 +182,7 @@ public class WeatherService extends Service {
                                 if (notification) {
                                     startNotification(true);
                                 }
-                                Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".WEATHER_BROADCAST");
+                                Intent intent = new Intent("android.appwidget.action.APPWIDGET_UPDATE");
                                 sendBroadcast(intent);
                             }))
                     .subscribe();
@@ -200,11 +200,12 @@ public class WeatherService extends Service {
     private Notification getNotification(String title, String content, int type, int id) {
         Intent intent;
         if (type == 1) {
+            LogUtil.d("alarmId", "" + id);
             intent = new Intent(this, AlarmActivity.class);
-            intent.putExtra("id", id);
+            intent.putExtra("alarmId", id);
         } else
             intent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         return new NotificationCompat.Builder(this, "weather")
                 .setWhen(System.currentTimeMillis())
                 .setContentIntent(pendingIntent)

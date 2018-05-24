@@ -24,12 +24,12 @@ import com.xily.weather.utils.SnackbarUtil;
 
 import org.litepal.crud.DataSupport;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.OnClick;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
+import rx.Subscription;
 
 public class CityActivity extends RxBaseActivity {
     @BindView(R.id.toolbar)
@@ -40,9 +40,10 @@ public class CityActivity extends RxBaseActivity {
     TextView empty;
     @BindView(R.id.view)
     CoordinatorLayout coordinatorLayout;
-    private List<CityList> cityList;
+    private List<CityList> cityList = new ArrayList<>();
     private PreferenceUtil preferenceUtil;
-
+    private Subscription subscription;
+    private CityAdapter adapter;
     @Override
     public int getLayoutId() {
         return R.layout.activity_city;
@@ -51,27 +52,52 @@ public class CityActivity extends RxBaseActivity {
     @Override
     public void initViews(Bundle savedInstanceState) {
         preferenceUtil = PreferenceUtil.getInstance();
-        initRxBus();
         initToolBar();
+        initRecycleView();
         loadData();
+    }
+
+    private void initRecycleView() {
+        adapter = new CityAdapter(this, cityList);
+        mRecycleView.setAdapter(adapter);
+        mRecycleView.setLayoutManager(new LinearLayoutManager(this));
+        adapter.setOnItemClickListener(position -> {
+            BusInfo busInfo = new BusInfo();
+            busInfo.setStatus(2);
+            busInfo.setPosition(position);
+            RxBus.getInstance().post(busInfo);
+            finish();
+        });
+        adapter.setOnItemLongClickListener(position -> {
+            int id = cityList.get(position).getId();
+            DataSupport.delete(CityList.class, id);
+            SnackbarUtil.showMessage(coordinatorLayout, "删除成功!");
+            BusInfo busInfo = new BusInfo();
+            busInfo.setStatus(1);
+            RxBus.getInstance().post(busInfo);
+            cityList.remove(position);
+            adapter.notifyDataSetChanged();
+            int cityId = preferenceUtil.get("notificationId", 0);
+            if (id == cityId) {
+                if (cityList.isEmpty()) {
+                    preferenceUtil.put("notificationId", 0);
+                    preferenceUtil.put("notification", false);
+                    preferenceUtil.put("isAutoUpdate", false);
+                } else {
+                    preferenceUtil.put("notificationId", cityList.get(0).getId());
+                }
+                Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
+                LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+            }
+            return true;
+        });
     }
 
     @Override
     public void loadData() {
-        cityList = DataSupport.findAll(CityList.class);
+        cityList.clear();
+        cityList.addAll(DataSupport.findAll(CityList.class));
         finishTask();
-    }
-
-    private void initRxBus() {
-        RxBus.getInstance()
-                .toObservable(BusInfo.class)
-                .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(busInfo -> {
-                    if (busInfo.getStatus() == 1)
-                        recreate();
-                });
     }
 
     @Override
@@ -79,39 +105,8 @@ public class CityActivity extends RxBaseActivity {
         if (cityList.isEmpty()) {
             empty.setVisibility(View.VISIBLE);
         } else {
-            CityAdapter adapter = new CityAdapter(this, cityList);
-            mRecycleView.setAdapter(adapter);
-            mRecycleView.setLayoutManager(new LinearLayoutManager(this));
-            adapter.setOnItemClickListener(position -> {
-                BusInfo busInfo = new BusInfo();
-                busInfo.setStatus(2);
-                busInfo.setPosition(position);
-                RxBus.getInstance().post(busInfo);
-                finish();
-            });
-            adapter.setOnItemLongClickListener(position -> {
-                int id = cityList.get(position).getId();
-                DataSupport.delete(CityList.class, id);
-                SnackbarUtil.showMessage(coordinatorLayout, "删除成功!");
-                BusInfo busInfo = new BusInfo();
-                busInfo.setStatus(1);
-                RxBus.getInstance().post(busInfo);
-                cityList.remove(position);
-                adapter.notifyDataSetChanged();
-                int cityId = preferenceUtil.get("notificationId", 0);
-                if (id == cityId) {
-                    if (cityList.isEmpty()) {
-                        preferenceUtil.put("notificationId", 0);
-                        preferenceUtil.put("notification", false);
-                        preferenceUtil.put("isAutoUpdate", false);
-                    } else {
-                        preferenceUtil.put("notificationId", cityList.get(0).getId());
-                    }
-                    Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
-                    LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-                }
-                return true;
-            });
+            empty.setVisibility(View.GONE);
+            adapter.notifyDataSetChanged();
         }
     }
 
@@ -127,7 +122,15 @@ public class CityActivity extends RxBaseActivity {
 
     @OnClick(R.id.btn_add)
     void addCity() {
-        startActivity(new Intent(this, AddCityActivity.class));
+        startActivityForResult(new Intent(this, AddCityActivity.class), 1);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1 && resultCode == 1) {
+            loadData();
+        }
     }
 
     @Override

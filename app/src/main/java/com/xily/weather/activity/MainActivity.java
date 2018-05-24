@@ -108,7 +108,6 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     private PreferenceUtil data;
     private Subscription subscription;
     private List<CityList> cityList;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         DeviceUtil.setStatusBarUpper(this);
@@ -348,52 +347,57 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.city:
-                startActivity(new Intent(this, CityActivity.class));
-                break;
-            case R.id.nav_setting:
-                startActivity(new Intent(this, SettingsActivity.class));
-                break;
-            case R.id.nav_theme:
-                LinearLayout linearLayout = new LinearLayout(this);
-                int padding = DeviceUtil.dp2px(20);
-                linearLayout.setPadding(padding, padding, padding, padding);
-                linearLayout.setGravity(Gravity.CENTER_HORIZONTAL);
-                FrameLayout frameLayout = new FrameLayout(this);
-                int[] colorList = ThemeUtil.getColorList();
-                int theme = ThemeUtil.getTheme();
-                for (int i = 0; i < colorList.length; i++) {
-                    Button button = new Button(this);
-                    GradientDrawable gradientDrawable = new GradientDrawable();
-                    gradientDrawable.setColor(getResources().getColor(colorList[i]));
-                    gradientDrawable.setShape(GradientDrawable.OVAL);
-                    button.setBackground(gradientDrawable);
-                    FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(DeviceUtil.dp2px(40), DeviceUtil.dp2px(40));
-                    layoutParams.leftMargin = DeviceUtil.dp2px(50) * (i % 5) + DeviceUtil.dp2px(5);
-                    layoutParams.topMargin = DeviceUtil.dp2px(50) * (i / 5) + DeviceUtil.dp2px(5);
-                    int finalI = i;
-                    button.setOnClickListener(v -> {
-                        data.put("theme", finalI);
-                        dialog.dismiss();
-                        recreate();
-                    });
-                    if (i == theme) {
-                        button.setText("✔");
-                        button.setTextColor(Color.parseColor("#ffffff"));
-                        button.setTextSize(15);
-                        button.setGravity(Gravity.CENTER);
-                    }
-                    frameLayout.addView(button, layoutParams);
-                }
-                linearLayout.addView(frameLayout);
-                dialog = new AlertDialog.Builder(MainActivity.this).setTitle("设置主题").setView(linearLayout).show();
-                break;
-            case R.id.nav_about:
-                startActivity(new Intent(this, AboutActivity.class));
-                break;
-        }
         mDrawerLayout.closeDrawer(GravityCompat.START);
+        Observable.timer(250, TimeUnit.MILLISECONDS)
+                .compose(bindToLifecycle())
+                .compose(RxHelper.applySchedulers())
+                .subscribe(aLong -> {
+                    switch (item.getItemId()) {
+                        case R.id.city:
+                            startActivity(new Intent(this, CityActivity.class));
+                            break;
+                        case R.id.nav_setting:
+                            startActivity(new Intent(this, SettingsActivity.class));
+                            break;
+                        case R.id.nav_theme:
+                            LinearLayout linearLayout = new LinearLayout(this);
+                            int padding = DeviceUtil.dp2px(20);
+                            linearLayout.setPadding(padding, padding, padding, padding);
+                            linearLayout.setGravity(Gravity.CENTER_HORIZONTAL);
+                            FrameLayout frameLayout = new FrameLayout(this);
+                            int[] colorList = ThemeUtil.getColorList();
+                            int theme = ThemeUtil.getTheme();
+                            for (int i = 0; i < colorList.length; i++) {
+                                Button button = new Button(this);
+                                GradientDrawable gradientDrawable = new GradientDrawable();
+                                gradientDrawable.setColor(getResources().getColor(colorList[i]));
+                                gradientDrawable.setShape(GradientDrawable.OVAL);
+                                button.setBackground(gradientDrawable);
+                                FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(DeviceUtil.dp2px(40), DeviceUtil.dp2px(40));
+                                layoutParams.leftMargin = DeviceUtil.dp2px(50) * (i % 5) + DeviceUtil.dp2px(5);
+                                layoutParams.topMargin = DeviceUtil.dp2px(50) * (i / 5) + DeviceUtil.dp2px(5);
+                                int finalI = i;
+                                button.setOnClickListener(v -> {
+                                    data.put("theme", finalI);
+                                    dialog.dismiss();
+                                    recreate();
+                                });
+                                if (i == theme) {
+                                    button.setText("✔");
+                                    button.setTextColor(Color.parseColor("#ffffff"));
+                                    button.setTextSize(15);
+                                    button.setGravity(Gravity.CENTER);
+                                }
+                                frameLayout.addView(button, layoutParams);
+                            }
+                            linearLayout.addView(frameLayout);
+                            dialog = new AlertDialog.Builder(MainActivity.this).setTitle("设置主题").setView(linearLayout).show();
+                            break;
+                        case R.id.nav_about:
+                            startActivity(new Intent(this, AboutActivity.class));
+                            break;
+                    }
+                });
         return true;
     }
 

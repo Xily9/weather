@@ -50,12 +50,7 @@ public class CityAdapter extends BaseAdapter<CityAdapter.ViewHolder, CityList> {
         return R.layout.layout_item_city;
     }
 
-    @Override
-    protected ViewHolder getViewHolder(View view) {
-        return new ViewHolder(view);
-    }
-
-    class ViewHolder extends BaseAdapter.ViewHolder {
+    class ViewHolder extends BaseAdapter.BaseViewHolder {
         @BindView(R.id.cityName)
         TextView cityName;
         @BindView(R.id.weather)

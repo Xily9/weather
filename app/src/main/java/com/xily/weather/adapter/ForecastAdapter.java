@@ -47,12 +47,7 @@ public class ForecastAdapter extends BaseAdapter<ForecastAdapter.ViewHolder, Wea
         return R.layout.layout_item_forecast;
     }
 
-    @Override
-    protected ViewHolder getViewHolder(View view) {
-        return new ViewHolder(view);
-    }
-
-    class ViewHolder extends BaseAdapter.ViewHolder {
+    class ViewHolder extends BaseAdapter.BaseViewHolder {
         @BindView(R.id.day)
         TextView day;
         @BindView(R.id.icon)

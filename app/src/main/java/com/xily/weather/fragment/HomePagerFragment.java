@@ -23,6 +23,7 @@ import com.xily.weather.db.CityList;
 import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.network.RetrofitHelper;
 import com.xily.weather.utils.ColorUtil;
+import com.xily.weather.utils.LogUtil;
 import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.widget.Weather3View;
 
@@ -91,6 +92,7 @@ public class HomePagerFragment extends RxBaseFragment {
         initToolbar();
         Bundle bundle = getArguments();
         int id = bundle.getInt("id");
+        LogUtil.d("fragmentId", "" + id);
         cityList = DataSupport.find(CityList.class, id);
         if (cityList != null) {
             swipeRefreshLayout.setColorSchemeColors(ColorUtil.getAttrColor(getActivity(), R.attr.colorAccent));
@@ -158,15 +160,10 @@ public class HomePagerFragment extends RxBaseFragment {
                     cityListUpdate.setUpdateTimeStr(weatherInfo.getValue().get(0).getRealtime().getTime().substring(11, 16));
                     cityListUpdate.update(cityList.getId());
                     updateTime.setText(cityListUpdate.getUpdateTimeStr() + "更新");
-                    cityList = DataSupport.find(CityList.class, cityList.getId());/*
-                    BusInfo busInfo = new BusInfo();
-                    busInfo.setStatus(3);
-                    busInfo.setPosition(position);
-                    busInfo.setCityList(cityList);
-                    RxBus.getInstance().post(busInfo);*/
+                    cityList = DataSupport.find(CityList.class, cityList.getId());
                     Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
                     LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
-                    Intent intent2 = new Intent(BuildConfig.APPLICATION_ID + ".WEATHER_BROADCAST");
+                    Intent intent2 = new Intent("android.appwidget.action.APPWIDGET_UPDATE");
                     getApplicationContext().sendBroadcast(intent2);
                 });
         Observable.concat(offline, online)
@@ -206,7 +203,7 @@ public class HomePagerFragment extends RxBaseFragment {
             alarm.setText(stringBuilder.toString());
             alarm.setOnClickListener(v -> {
                 Intent intent = new Intent(getActivity(), AlarmActivity.class);
-                intent.putExtra("id", cityList.getId());
+                intent.putExtra("alarmId", cityList.getId());
                 startActivity(intent);
             });
         }
@@ -214,13 +211,6 @@ public class HomePagerFragment extends RxBaseFragment {
             setOrientation(LinearLayoutManager.HORIZONTAL);
         }});
         forecast.setAdapter(new ForecastAdapter(getActivity(), valueBean.getWeathers()));
-        /*
-        RecyclerView recyclerView1 = view.findViewById(R.id.weather3);
-        recyclerView1.setLayoutManager(new LinearLayoutManager(this) {{
-            setOrientation(LinearLayoutManager.HORIZONTAL);
-        }});
-        recyclerView1.setAdapter(new Weather3Adapter(this, ));
-        */
         weather3View.setData(valueBean.getWeatherDetailsInfo().getWeather3HoursDetailsInfos());
         pm25.setText(valueBean.getPm25().getPm25());
         pm10.setText(valueBean.getPm25().getPm10());

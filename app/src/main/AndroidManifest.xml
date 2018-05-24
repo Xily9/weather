@@ -49,7 +49,6 @@
                 android:resource="@xml/widget_provider_info" />
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.xily.weather.WEATHER_BROADCAST" />
             </intent-filter>
         </receiver>
     </application>

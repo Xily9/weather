@@ -8,6 +8,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 
 import butterknife.ButterKnife;
@@ -21,7 +26,7 @@ import butterknife.ButterKnife;
  * @author Xily
  */
 
-public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends RecyclerView.Adapter<T> {
+public abstract class BaseAdapter<T extends BaseAdapter.BaseViewHolder, U> extends RecyclerView.Adapter<T> {
     private Context mContext;
     private List<U> mList;
     private OnItemClickListener onItemClickListener;
@@ -56,8 +61,6 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
     @LayoutRes
     int getLayoutId();
 
-    protected abstract T getViewHolder(View view);
-
     @Override
     public int getItemCount() {
         return mList.size();
@@ -66,34 +69,62 @@ public abstract class BaseAdapter<T extends BaseAdapter.ViewHolder, U> extends R
     @NonNull
     @Override
     public T onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return getViewHolder(LayoutInflater.from(mContext).inflate(getLayoutId(), parent, false));
+        return createViewHolder(LayoutInflater.from(mContext).inflate(getLayoutId(), parent, false));
+    }
+
+    /**
+     * 利用反射获取子类的ViewHolder实例
+     */
+    @SuppressWarnings("unchecked")
+    private T createViewHolder(View view) {
+        Type type = getClass().getGenericSuperclass();//获取父类Type
+        if (type instanceof ParameterizedType) {//判断是不是泛型参数列表
+            Type[] types = ((ParameterizedType) type).getActualTypeArguments();//获取泛型参数列表
+            Class clazz = (Class) types[0];//获取第一个Class
+            if (BaseViewHolder.class.isAssignableFrom(clazz)) {//判断获取到的是不是BaseViewHolder子类
+                try {
+                    Constructor cons;
+                    if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {//是内部类且不是静态类
+                        cons = clazz.getDeclaredConstructor(getClass(), View.class);//获取内部类的构造函数,要注意必须要传入外部类的Class
+                        cons.setAccessible(true);//设置为可访问
+                        return (T) cons.newInstance(this, view);//实例化
+                    } else {
+                        cons = clazz.getDeclaredConstructor(View.class);
+                        cons.setAccessible(true);
+                        return (T) cons.newInstance(view);
+                    }
+                } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return (T) new BaseViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull T holder, int position) {
         if (onItemClickListener != null)
-            holder.itemView.setOnClickListener(view -> onItemClickListener.onClick(position));
+            holder.itemView.setOnClickListener(view -> onItemClickListener.onItemClick(position));
         if (onItemLongClickListener != null)
-            holder.itemView.setOnLongClickListener(view -> onItemLongClickListener.onLongClick(position));
+            holder.itemView.setOnLongClickListener(view -> onItemLongClickListener.onItemLongClick(position));
         onBindViewHolder(holder, position, mList.get(position));
     }
 
     protected abstract void onBindViewHolder(@NonNull T holder, int position, U value);
 
+    public class BaseViewHolder extends RecyclerView.ViewHolder {
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
-
-        public ViewHolder(View itemView) {
+        public BaseViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
         }
     }
 
     public interface OnItemClickListener {
-        void onClick(int position);
+        void onItemClick(int position);
     }
 
     public interface OnItemLongClickListener {
-        boolean onLongClick(int position);
+        boolean onItemLongClick(int position);
     }
 }
