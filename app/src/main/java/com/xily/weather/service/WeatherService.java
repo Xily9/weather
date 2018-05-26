@@ -147,7 +147,7 @@ public class WeatherService extends Service {
         if ((nightNoUpdate && hour < 23 && hour >= 6) || !nightNoUpdate) {
             List<CityList> cityList = DataSupport.findAll(CityList.class);
             Observable.from(cityList)
-                    .flatMap(cityList1 -> RetrofitHelper.getMeiZuWeatherApi()
+                    .flatMap(cityList1 -> RetrofitHelper.getWeatherApi()
                             .getWeather(String.valueOf(cityList1.getWeatherId()))
                             .subscribeOn(Schedulers.io())
                             .doOnNext(weatherInfo -> {

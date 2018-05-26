@@ -10,7 +10,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
@@ -27,13 +26,10 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
-import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
-import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -103,7 +99,6 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     LinearLayout empty;
     @BindView(R.id.progress)
     ProgressBar progressBar;
-    private AlertDialog dialog;
     private long exitTime;
     private PreferenceUtil data;
     private Subscription subscription;
@@ -295,20 +290,31 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                 .flatMap(location -> {
                     String str = String.valueOf(location.getLatitude()) + "," + String.valueOf(location.getLongitude());
                     LogUtil.d("location", str);
-                    return RetrofitHelper.getBaiduLocationApi()
-                            .getAddress(str)
+                    return Observable.create((Observable.OnSubscribe<String>) subscriber ->
+                            OkHttpHelper.get("http://api.map.baidu.com/geocoder/v2/?callback=renderReverse&output=json&coordtype=wgs84ll&pois=1&ak=x8Vszvqzii0UyemFiYuWzsucrPOmfUg3&locatin=" + str,
+                                    new Callback() {
+                                        @Override
+                                        public void onFailure(Call call, IOException e) {
+                                            subscriber.onError(e);
+                                        }
+
+                                        @Override
+                                        public void onResponse(Call call, Response response) throws IOException {
+                                            subscriber.onNext(response.body().string());
+                                        }
+                                    }
+                            ))
                             .compose(bindToLifecycle())
                             .subscribeOn(Schedulers.io());
                 })
-                .flatMap(responseBody -> {
+                .flatMap(jsonStr -> {
                     try {
-                        String jsonStr = responseBody.string();
                         String addrJson = jsonStr.substring(29, jsonStr.length() - 1);
                         LogUtil.d("json", addrJson);
                         BaiduLocationInfo baiduLocationInfo = new Gson().fromJson(addrJson, BaiduLocationInfo.class);
                         if (baiduLocationInfo.getStatus() == 0) {
                             String address = baiduLocationInfo.getResult().getAddressComponent().getDistrict();
-                            return RetrofitHelper.getHeWeatherApi()
+                            return RetrofitHelper.getWeatherApi()
                                     .search(address.substring(0, address.length() - 1))
                                     .compose(bindToLifecycle())
                                     .subscribeOn(Schedulers.io());
@@ -360,38 +366,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                             startActivity(new Intent(this, SettingsActivity.class));
                             break;
                         case R.id.nav_theme:
-                            LinearLayout linearLayout = new LinearLayout(this);
-                            int padding = DeviceUtil.dp2px(20);
-                            linearLayout.setPadding(padding, padding, padding, padding);
-                            linearLayout.setGravity(Gravity.CENTER_HORIZONTAL);
-                            FrameLayout frameLayout = new FrameLayout(this);
-                            int[] colorList = ThemeUtil.getColorList();
-                            int theme = ThemeUtil.getTheme();
-                            for (int i = 0; i < colorList.length; i++) {
-                                Button button = new Button(this);
-                                GradientDrawable gradientDrawable = new GradientDrawable();
-                                gradientDrawable.setColor(getResources().getColor(colorList[i]));
-                                gradientDrawable.setShape(GradientDrawable.OVAL);
-                                button.setBackground(gradientDrawable);
-                                FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(DeviceUtil.dp2px(40), DeviceUtil.dp2px(40));
-                                layoutParams.leftMargin = DeviceUtil.dp2px(50) * (i % 5) + DeviceUtil.dp2px(5);
-                                layoutParams.topMargin = DeviceUtil.dp2px(50) * (i / 5) + DeviceUtil.dp2px(5);
-                                int finalI = i;
-                                button.setOnClickListener(v -> {
-                                    data.put("theme", finalI);
-                                    dialog.dismiss();
-                                    recreate();
-                                });
-                                if (i == theme) {
-                                    button.setText("✔");
-                                    button.setTextColor(Color.parseColor("#ffffff"));
-                                    button.setTextSize(15);
-                                    button.setGravity(Gravity.CENTER);
-                                }
-                                frameLayout.addView(button, layoutParams);
-                            }
-                            linearLayout.addView(frameLayout);
-                            dialog = new AlertDialog.Builder(MainActivity.this).setTitle("设置主题").setView(linearLayout).show();
+                            ThemeUtil.showSwitchThemeDialog(this);
                             break;
                         case R.id.nav_about:
                             startActivity(new Intent(this, AboutActivity.class));
@@ -459,7 +434,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
         int version = BuildConfig.VERSION_CODE;
         String versionName = BuildConfig.VERSION_NAME;
         int checkedVersion = data.get("checkedVersion", 0);
-        RetrofitHelper.getMyApi()
+        RetrofitHelper.getWeatherApi()
                 .checkVersion()
                 .compose(bindToLifecycle())
                 .compose(RxHelper.applySchedulers())

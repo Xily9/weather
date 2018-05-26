@@ -141,7 +141,7 @@ public class HomePagerFragment extends RxBaseFragment {
                         return new Gson().fromJson(data, WeatherInfo.class);
                     }
                 });
-        Observable<WeatherInfo> online = RetrofitHelper.getMeiZuWeatherApi()
+        Observable<WeatherInfo> online = RetrofitHelper.getWeatherApi()
                 .getWeather(String.valueOf(cityList.getWeatherId()))
                 .compose(bindToLifecycle())
                 .subscribeOn(Schedulers.io())

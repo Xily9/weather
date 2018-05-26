@@ -17,6 +17,7 @@ public class WeatherUtil {
         put("9", R.drawable.weather_9);
         put("10", R.drawable.weather_10);
         put("29", R.drawable.weather_29);
+        put("53", R.drawable.weather_53);
     }};
 
     public static Map<String, Integer> getWeatherIcons() {

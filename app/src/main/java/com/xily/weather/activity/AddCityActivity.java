@@ -132,7 +132,7 @@ public class AddCityActivity extends RxBaseActivity {
     }
 
     private void search(String str) {
-        RetrofitHelper.getHeWeatherApi()
+        RetrofitHelper.getWeatherApi()
                 .search(str)
                 .compose(bindToLifecycle())
                 .subscribeOn(Schedulers.io())
@@ -162,7 +162,7 @@ public class AddCityActivity extends RxBaseActivity {
         title.setText("中国");
         List<Province> provinceList = DataSupport.findAll(Province.class);
         if (provinceList.isEmpty()) {
-            RetrofitHelper.getGuoLinApi()
+            RetrofitHelper.getWeatherApi()
                     .getProvinces()
                     .compose(bindToLifecycle())
                     .subscribeOn(Schedulers.io())
@@ -209,7 +209,7 @@ public class AddCityActivity extends RxBaseActivity {
         String provinceIdStr = String.valueOf(provinceId);
         List<City> cityList = DataSupport.where("provinceid=?", provinceIdStr).find(City.class);
         if (cityList.isEmpty()) {
-            RetrofitHelper.getGuoLinApi()
+            RetrofitHelper.getWeatherApi()
                     .getCities(provinceIdStr)
                     .compose(bindToLifecycle())
                     .subscribeOn(Schedulers.io())
@@ -251,7 +251,7 @@ public class AddCityActivity extends RxBaseActivity {
         String cityIdStr = String.valueOf(cityId);
         List<County> countyList = DataSupport.where("cityid=?", cityIdStr).find(County.class);
         if (countyList.isEmpty()) {
-            RetrofitHelper.getGuoLinApi()
+            RetrofitHelper.getWeatherApi()
                     .getCounties(String.valueOf(provinceId), cityIdStr)
                     .compose(bindToLifecycle())
                     .subscribeOn(Schedulers.io())

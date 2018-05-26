@@ -13,6 +13,10 @@ public class OkHttpHelper {
         setUpOkHttpClient();
     }
 
+    public static OkHttpClient getClient() {
+        return client;
+    }
+
     private static void setUpOkHttpClient() {
         client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
