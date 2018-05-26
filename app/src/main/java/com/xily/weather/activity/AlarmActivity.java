@@ -58,7 +58,7 @@ public class AlarmActivity extends RxBaseActivity {
     @Override
     public void finishTask() {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new AlarmAdapter(this, alarmsBeanList));
+        recyclerView.setAdapter(new AlarmAdapter(alarmsBeanList));
     }
 
     @Override

@@ -44,8 +44,7 @@ public abstract class BaseAdapter<T extends BaseAdapter.BaseViewHolder, U> exten
         this.mList = mList;
     }
 
-    public BaseAdapter(Context mContext, List<U> mList) {
-        this.mContext = mContext;
+    public BaseAdapter(List<U> mList) {
         this.mList = mList;
     }
 
@@ -69,7 +68,19 @@ public abstract class BaseAdapter<T extends BaseAdapter.BaseViewHolder, U> exten
     @NonNull
     @Override
     public T onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return createViewHolder(LayoutInflater.from(mContext).inflate(getLayoutId(), parent, false));
+        mContext = parent.getContext();
+        T holder = createViewHolder(LayoutInflater.from(mContext).inflate(getLayoutId(), parent, false));
+        if (onItemClickListener != null)
+            holder.itemView.setOnClickListener(view -> {
+                int position = holder.getAdapterPosition();
+                onItemClickListener.onItemClick(position);
+            });
+        if (onItemLongClickListener != null)
+            holder.itemView.setOnLongClickListener(view -> {
+                int position = holder.getAdapterPosition();
+                return onItemLongClickListener.onItemLongClick(position);
+            });
+        return holder;
     }
 
     /**
@@ -81,21 +92,19 @@ public abstract class BaseAdapter<T extends BaseAdapter.BaseViewHolder, U> exten
         if (type instanceof ParameterizedType) {//判断是不是泛型参数列表
             Type[] types = ((ParameterizedType) type).getActualTypeArguments();//获取泛型参数列表
             Class clazz = (Class) types[0];//获取第一个Class
-            if (BaseViewHolder.class.isAssignableFrom(clazz)) {//判断获取到的是不是BaseViewHolder子类
-                try {
-                    Constructor cons;
-                    if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {//是内部类且不是静态类
-                        cons = clazz.getDeclaredConstructor(getClass(), View.class);//获取内部类的构造函数,要注意必须要传入外部类的Class
-                        cons.setAccessible(true);//设置为可访问
-                        return (T) cons.newInstance(this, view);//实例化
-                    } else {
-                        cons = clazz.getDeclaredConstructor(View.class);
-                        cons.setAccessible(true);
-                        return (T) cons.newInstance(view);
-                    }
-                } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                    e.printStackTrace();
+            try {
+                Constructor cons;
+                if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers())) {//是内部类且不是静态类
+                    cons = clazz.getDeclaredConstructor(getClass(), View.class);//获取内部类的构造函数,要注意必须要传入外部类的Class
+                    cons.setAccessible(true);//设置为可访问
+                    return (T) cons.newInstance(this, view);//实例化
+                } else {
+                    cons = clazz.getDeclaredConstructor(View.class);
+                    cons.setAccessible(true);
+                    return (T) cons.newInstance(view);
                 }
+            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+                e.printStackTrace();
             }
         }
         return (T) new BaseViewHolder(view);
@@ -103,10 +112,6 @@ public abstract class BaseAdapter<T extends BaseAdapter.BaseViewHolder, U> exten
 
     @Override
     public void onBindViewHolder(@NonNull T holder, int position) {
-        if (onItemClickListener != null)
-            holder.itemView.setOnClickListener(view -> onItemClickListener.onItemClick(position));
-        if (onItemLongClickListener != null)
-            holder.itemView.setOnLongClickListener(view -> onItemLongClickListener.onItemLongClick(position));
         onBindViewHolder(holder, position, mList.get(position));
     }
 

@@ -1,6 +1,5 @@
 package com.xily.weather.adapter;
 
-import android.content.Context;
 import android.support.annotation.NonNull;
 import android.view.View;
 import android.widget.ImageView;
@@ -21,8 +20,8 @@ public class ForecastAdapter extends BaseAdapter<ForecastAdapter.ViewHolder, Wea
 
     private Map<String, Integer> map = WeatherUtil.getWeatherIcons();
 
-    public ForecastAdapter(Context mContext, List<WeatherInfo.ValueBean.WeathersBean> mList) {
-        super(mContext, mList);
+    public ForecastAdapter(List<WeatherInfo.ValueBean.WeathersBean> mList) {
+        super(mList);
     }
 
     @Override

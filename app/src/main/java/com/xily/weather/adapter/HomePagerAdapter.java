@@ -1,6 +1,5 @@
 package com.xily.weather.adapter;
 
-import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
@@ -20,11 +19,7 @@ public class HomePagerAdapter extends FragmentStatePagerAdapter {
 
     @Override
     public Fragment getItem(int position) {
-        HomePagerFragment homePagerFragment = HomePagerFragment.newInstance();
-        Bundle bundle = new Bundle();
-        bundle.putInt("id", cityList.get(position).getId());
-        homePagerFragment.setArguments(bundle);
-        return homePagerFragment;
+        return HomePagerFragment.newInstance(position);
     }
 
     @Override

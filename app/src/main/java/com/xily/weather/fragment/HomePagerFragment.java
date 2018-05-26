@@ -23,7 +23,6 @@ import com.xily.weather.db.CityList;
 import com.xily.weather.entity.WeatherInfo;
 import com.xily.weather.network.RetrofitHelper;
 import com.xily.weather.utils.ColorUtil;
-import com.xily.weather.utils.LogUtil;
 import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.widget.Weather3View;
 
@@ -78,10 +77,13 @@ public class HomePagerFragment extends RxBaseFragment {
     private boolean isRefreshing;
     private boolean isVisible, isViewCreated;
 
-    public static HomePagerFragment newInstance() {
-        return new HomePagerFragment();
+    public static HomePagerFragment newInstance(int position) {
+        Bundle args = new Bundle();
+        args.putInt("position", position);
+        HomePagerFragment fragment = new HomePagerFragment();
+        fragment.setArguments(args);
+        return fragment;
     }
-
     @Override
     public int getLayoutId() {
         return R.layout.layout_fragment_homepager;
@@ -91,10 +93,10 @@ public class HomePagerFragment extends RxBaseFragment {
     public void finishCreateView(Bundle state) {
         initToolbar();
         Bundle bundle = getArguments();
-        int id = bundle.getInt("id");
-        LogUtil.d("fragmentId", "" + id);
-        cityList = DataSupport.find(CityList.class, id);
-        if (cityList != null) {
+        int position = bundle.getInt("position");
+        List<CityList> cityLists = DataSupport.findAll(CityList.class);
+        if (cityLists.size() > position) {
+            cityList = cityLists.get(position);
             swipeRefreshLayout.setColorSchemeColors(ColorUtil.getAttrColor(getActivity(), R.attr.colorAccent));
             swipeRefreshLayout.setOnRefreshListener(() -> {
                 isRefreshing = true;
@@ -210,7 +212,7 @@ public class HomePagerFragment extends RxBaseFragment {
         forecast.setLayoutManager(new LinearLayoutManager(getActivity()) {{
             setOrientation(LinearLayoutManager.HORIZONTAL);
         }});
-        forecast.setAdapter(new ForecastAdapter(getActivity(), valueBean.getWeathers()));
+        forecast.setAdapter(new ForecastAdapter(valueBean.getWeathers()));
         weather3View.setData(valueBean.getWeatherDetailsInfo().getWeather3HoursDetailsInfos());
         pm25.setText(valueBean.getPm25().getPm25());
         pm10.setText(valueBean.getPm25().getPm10());
@@ -220,6 +222,6 @@ public class HomePagerFragment extends RxBaseFragment {
         o3.setText(valueBean.getPm25().getO3());
         List<WeatherInfo.ValueBean.IndexesBean> indexesBeans = valueBean.getIndexes();
         suggest.setLayoutManager(new GridLayoutManager(getActivity(), 3));
-        suggest.setAdapter(new SuggestAdapter(getActivity(), indexesBeans));
+        suggest.setAdapter(new SuggestAdapter(indexesBeans));
     }
 }

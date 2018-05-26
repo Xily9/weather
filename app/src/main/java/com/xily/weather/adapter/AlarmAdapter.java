@@ -1,6 +1,5 @@
 package com.xily.weather.adapter;
 
-import android.content.Context;
 import android.support.annotation.NonNull;
 import android.view.View;
 import android.widget.TextView;
@@ -15,8 +14,8 @@ import butterknife.BindView;
 
 public class AlarmAdapter extends BaseAdapter<AlarmAdapter.ViewHolder, WeatherInfo.ValueBean.AlarmsBean> {
 
-    public AlarmAdapter(Context mContext, List<WeatherInfo.ValueBean.AlarmsBean> mList) {
-        super(mContext, mList);
+    public AlarmAdapter(List<WeatherInfo.ValueBean.AlarmsBean> mList) {
+        super(mList);
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.xily.weather.adapter;
 
-import android.content.Context;
 import android.support.annotation.NonNull;
 import android.view.View;
 import android.widget.TextView;
@@ -15,8 +14,8 @@ import butterknife.BindView;
 
 public class SuggestAdapter extends BaseAdapter<SuggestAdapter.ViewHolder, WeatherInfo.ValueBean.IndexesBean> {
 
-    public SuggestAdapter(Context mContext, List<WeatherInfo.ValueBean.IndexesBean> mList) {
-        super(mContext, mList);
+    public SuggestAdapter(List<WeatherInfo.ValueBean.IndexesBean> mList) {
+        super(mList);
     }
 
     @Override

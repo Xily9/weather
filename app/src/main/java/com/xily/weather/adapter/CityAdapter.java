@@ -1,6 +1,5 @@
 package com.xily.weather.adapter;
 
-import android.content.Context;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.view.View;
@@ -18,8 +17,8 @@ import butterknife.BindView;
 
 public class CityAdapter extends BaseAdapter<CityAdapter.ViewHolder, CityList> {
 
-    public CityAdapter(Context mContext, List<CityList> mList) {
-        super(mContext, mList);
+    public CityAdapter(List<CityList> mList) {
+        super(mList);
     }
 
     @Override
