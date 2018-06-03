@@ -10,7 +10,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -35,16 +34,15 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.amap.api.location.AMapLocation;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
-import com.google.gson.Gson;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.adapter.HomePagerAdapter;
 import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.db.CityList;
-import com.xily.weather.entity.BaiduLocationInfo;
 import com.xily.weather.entity.BusInfo;
 import com.xily.weather.entity.SearchInfo;
 import com.xily.weather.network.OkHttpHelper;
@@ -103,6 +101,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     private PreferenceUtil data;
     private Subscription subscription;
     private List<CityList> cityList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         DeviceUtil.setStatusBarUpper(this);
@@ -267,8 +266,7 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 new AlertDialog.Builder(this)
                         .setTitle("权限申请")
-                        .setMessage("为了能够正常定位,需要申请以下权限:\n" +
-                                "网络定位:用于获取您的当前城市信息")
+                        .setMessage("为了能够正常定位,需要申请定位权限")
                         .setPositiveButton("立刻授权", (a, b) -> ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1))
                         .setNegativeButton("取消", (a, b) -> ToastUtil.ShortToast("您已取消权限申请,无法定位!"))
                         .setCancelable(false)
@@ -280,52 +278,25 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     }
 
     void findLocation() {
-        Observable.create((Observable.OnSubscribe<Location>) subscriber -> LocationUtil.getLocation(location -> {
+        Observable.create((Observable.OnSubscribe<AMapLocation>) subscriber -> LocationUtil.getLocation(location -> {
             if (location == null) {
                 subscriber.onError(new RuntimeException("获取定位信息失败!"));
             } else {
-                subscriber.onNext(location);
+                if (location.getErrorCode() == 0) {
+                    subscriber.onNext(location);
+                    subscriber.onCompleted();
+                } else {
+                    //定位失败时，可通过ErrCode（错误码）信息来确定失败的原因，errInfo是错误信息，详见错误码表。
+                    subscriber.onError(new RuntimeException("location Error, ErrCode:"
+                            + location.getErrorCode() + ", errInfo:"
+                            + location.getErrorInfo()));
+                }
             }
         }))
-                .flatMap(location -> {
-                    String str = String.valueOf(location.getLatitude()) + "," + String.valueOf(location.getLongitude());
-                    LogUtil.d("location", str);
-                    return Observable.create((Observable.OnSubscribe<String>) subscriber ->
-                            OkHttpHelper.get("http://api.map.baidu.com/geocoder/v2/?callback=renderReverse&output=json&coordtype=wgs84ll&pois=1&ak=x8Vszvqzii0UyemFiYuWzsucrPOmfUg3&locatin=" + str,
-                                    new Callback() {
-                                        @Override
-                                        public void onFailure(Call call, IOException e) {
-                                            subscriber.onError(e);
-                                        }
-
-                                        @Override
-                                        public void onResponse(Call call, Response response) throws IOException {
-                                            subscriber.onNext(response.body().string());
-                                        }
-                                    }
-                            ))
-                            .compose(bindToLifecycle())
-                            .subscribeOn(Schedulers.io());
-                })
-                .flatMap(jsonStr -> {
-                    try {
-                        String addrJson = jsonStr.substring(29, jsonStr.length() - 1);
-                        LogUtil.d("json", addrJson);
-                        BaiduLocationInfo baiduLocationInfo = new Gson().fromJson(addrJson, BaiduLocationInfo.class);
-                        if (baiduLocationInfo.getStatus() == 0) {
-                            String address = baiduLocationInfo.getResult().getAddressComponent().getDistrict();
-                            return RetrofitHelper.getWeatherApi()
-                                    .search(address.substring(0, address.length() - 1))
-                                    .compose(bindToLifecycle())
-                                    .subscribeOn(Schedulers.io());
-                        } else {
-                            return Observable.error(new RuntimeException("定位失败!"));
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException("定位失败!");
-                    }
-                })
+                .flatMap(location -> RetrofitHelper.getWeatherApi()
+                        .search(location.getDistrict().substring(0, location.getDistrict().length() - 1))
+                        .compose(bindToLifecycle())
+                        .subscribeOn(Schedulers.io()))
                 .doOnSubscribe(() -> {
                     progressBar.setVisibility(View.VISIBLE);
                     empty.setVisibility(View.GONE);
@@ -341,7 +312,6 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
                         cityList.setCityName(heWeather6Bean.getBasic().get(0).getLocation());
                         cityList.setWeatherId(Integer.valueOf(heWeather6Bean.getBasic().get(0).getCid().substring(2)));
                         cityList.save();
-                        empty.setVisibility(View.GONE);
                         initCities();
                     }
                 }, throwable -> {
@@ -551,6 +521,5 @@ public class MainActivity extends RxBaseActivity implements NavigationView.OnNav
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        LocationUtil.unRegisterListener();
     }
 }

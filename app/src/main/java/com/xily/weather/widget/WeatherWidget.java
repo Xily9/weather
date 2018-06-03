@@ -5,7 +5,6 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.widget.RemoteViews;
 
 import com.google.gson.Gson;
@@ -71,7 +70,7 @@ public class WeatherWidget extends AppWidgetProvider {
             }
         }
     }
-
+/*
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
@@ -85,5 +84,5 @@ public class WeatherWidget extends AppWidgetProvider {
             }
         }
     }
-
+*/
 }
