@@ -4,9 +4,11 @@ import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
-import com.xily.weather.MyApplication;
+import com.xily.weather.app.App;
 
 import java.util.Map;
+
+import javax.inject.Inject;
 
 public class PreferenceUtil {
     private static PreferenceUtil mInstance;
@@ -24,9 +26,10 @@ public class PreferenceUtil {
         return mInstance;
     }
 
+    @Inject
     @SuppressLint("CommitPrefEdits")
     public PreferenceUtil() {
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(MyApplication.getInstance());
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(App.getInstance());
         editor = sharedPreferences.edit();
     }
 

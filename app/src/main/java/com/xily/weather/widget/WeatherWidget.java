@@ -10,10 +10,10 @@ import android.widget.RemoteViews;
 import com.google.gson.Gson;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.activity.MainActivity;
-import com.xily.weather.db.CityList;
-import com.xily.weather.entity.WeatherInfo;
+import com.xily.weather.model.bean.CityListBean;
+import com.xily.weather.model.bean.WeatherBean;
 import com.xily.weather.service.WeatherService;
+import com.xily.weather.ui.activity.MainActivity;
 import com.xily.weather.utils.DeviceUtil;
 import com.xily.weather.utils.LogUtil;
 import com.xily.weather.utils.PreferenceUtil;
@@ -34,10 +34,10 @@ public class WeatherWidget extends AppWidgetProvider {
             context.startService(startIntent);
         }
         PreferenceUtil preferenceUtil = PreferenceUtil.getInstance();
-        List<CityList> cityLists = DataSupport.findAll(CityList.class);
+        List<CityListBean> cityLists = DataSupport.findAll(CityListBean.class);
         int cityId = preferenceUtil.get("notificationId", 0);
         boolean check = false;
-        for (CityList cityList : cityLists) {
+        for (CityListBean cityList : cityLists) {
             if (cityList.getId() == cityId) {
                 check = true;
                 break;
@@ -46,13 +46,13 @@ public class WeatherWidget extends AppWidgetProvider {
         if (!check && !cityLists.isEmpty()) {
             preferenceUtil.put("notificationId", cityLists.get(0).getId());
         }
-        CityList cityList = DataSupport.find(CityList.class, preferenceUtil.get("notificationId", 0));
+        CityListBean cityList = DataSupport.find(CityListBean.class, preferenceUtil.get("notificationId", 0));
         if (cityList != null) {
             RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.layout_widget);
-            WeatherInfo weatherInfo = new Gson().fromJson(cityList.getWeatherData(), WeatherInfo.class);
+            WeatherBean weatherBean = new Gson().fromJson(cityList.getWeatherData(), WeatherBean.class);
             remoteViews.setTextViewText(R.id.cityName, cityList.getCityName());
-            if (weatherInfo != null) {
-                WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
+            if (weatherBean != null) {
+                WeatherBean.ValueBean valueBean = weatherBean.getValue().get(0);
                 remoteViews.setTextViewText(R.id.content, valueBean.getRealtime().getWeather() + "   " + valueBean.getPm25().getAqi() + " " + valueBean.getPm25().getQuality() + "   " + valueBean.getRealtime().getWd() + valueBean.getRealtime().getWs());
                 if (map.containsKey(valueBean.getRealtime().getImg())) {
                     remoteViews.setImageViewResource(R.id.icon, map.get(valueBean.getRealtime().getImg()));

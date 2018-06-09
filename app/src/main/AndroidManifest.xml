@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <application
-        android:name=".MyApplication"
+        android:name=".app.App"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -32,7 +32,7 @@
         </provider>
 
         <activity
-            android:name=".activity.MainActivity"
+            android:name=".ui.activity.MainActivity"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -40,11 +40,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activity.CityActivity" />
-        <activity android:name=".activity.AddCityActivity" />
-        <activity android:name=".activity.AboutActivity" />
-        <activity android:name=".activity.AlarmActivity" />
-        <activity android:name=".activity.SettingsActivity" />
+        <activity android:name=".ui.activity.CityActivity" />
+        <activity android:name=".ui.activity.AddCityActivity" />
+        <activity android:name=".ui.activity.AboutActivity" />
+        <activity android:name=".ui.activity.AlarmActivity" />
+        <activity android:name=".ui.activity.SettingsActivity" />
 
         <service
             android:name=".service.WeatherService"

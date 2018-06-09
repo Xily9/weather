@@ -19,12 +19,12 @@ import android.widget.RemoteViews;
 import com.google.gson.Gson;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.activity.AlarmActivity;
-import com.xily.weather.activity.MainActivity;
-import com.xily.weather.db.Alarms;
-import com.xily.weather.db.CityList;
-import com.xily.weather.entity.WeatherInfo;
-import com.xily.weather.network.RetrofitHelper;
+import com.xily.weather.model.bean.AlarmsBean;
+import com.xily.weather.model.bean.CityListBean;
+import com.xily.weather.model.bean.WeatherBean;
+import com.xily.weather.model.network.RetrofitHelper;
+import com.xily.weather.ui.activity.AlarmActivity;
+import com.xily.weather.ui.activity.MainActivity;
 import com.xily.weather.utils.LogUtil;
 import com.xily.weather.utils.PreferenceUtil;
 import com.xily.weather.utils.WeatherUtil;
@@ -79,9 +79,9 @@ public class WeatherService extends Service {
     }
 
     private void startNotification(boolean isUpdate) {
-        CityList cityList = DataSupport.find(CityList.class, preferenceUtil.get("notificationId", 0));
+        CityListBean cityList = DataSupport.find(CityListBean.class, preferenceUtil.get("notificationId", 0));
         if (cityList != null) {
-            WeatherInfo weatherInfo = new Gson().fromJson(cityList.getWeatherData(), WeatherInfo.class);
+            WeatherBean weatherBean = new Gson().fromJson(cityList.getWeatherData(), WeatherBean.class);
             Intent intent1 = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent1, 0);
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "weather")
@@ -89,8 +89,8 @@ public class WeatherService extends Service {
                     .setContentIntent(pendingIntent);
             RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.layout_notification);
             remoteViews.setTextViewText(R.id.cityName, cityList.getCityName());
-            if (weatherInfo != null) {
-                WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
+            if (weatherBean != null) {
+                WeatherBean.ValueBean valueBean = weatherBean.getValue().get(0);
                 remoteViews.setTextViewText(R.id.content, valueBean.getRealtime().getWeather() + "   " + valueBean.getPm25().getAqi() + " " + valueBean.getPm25().getQuality() + "   " + valueBean.getRealtime().getWd() + valueBean.getRealtime().getWs());
                 if (map.containsKey(valueBean.getRealtime().getImg())) {
                     builder.setSmallIcon(map.get(valueBean.getRealtime().getImg()));
@@ -145,26 +145,26 @@ public class WeatherService extends Service {
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         boolean nightNoUpdate = preferenceUtil.get("nightNoUpdate", false);
         if ((nightNoUpdate && hour < 23 && hour >= 6) || !nightNoUpdate) {
-            List<CityList> cityList = DataSupport.findAll(CityList.class);
+            List<CityListBean> cityList = DataSupport.findAll(CityListBean.class);
             Observable.from(cityList)
                     .flatMap(cityList1 -> RetrofitHelper.getWeatherApi()
                             .getWeather(String.valueOf(cityList1.getWeatherId()))
                             .subscribeOn(Schedulers.io())
                             .doOnNext(weatherInfo -> {
-                                WeatherInfo.ValueBean valueBean = weatherInfo.getValue().get(0);
-                                CityList cityListUpdate = new CityList();
+                                WeatherBean.ValueBean valueBean = weatherInfo.getValue().get(0);
+                                CityListBean cityListUpdate = new CityListBean();
                                 cityListUpdate.setWeatherData(new Gson().toJson(weatherInfo));
                                 cityListUpdate.setUpdateTime(System.currentTimeMillis());
                                 cityListUpdate.setUpdateTimeStr(valueBean.getRealtime().getTime().substring(11, 16));
                                 cityListUpdate.update(cityList1.getId());
                                 if (preferenceUtil.get("alarm", false)) {
-                                    for (WeatherInfo.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
-                                        List<Alarms> alarms = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(Alarms.class);
+                                    for (WeatherBean.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
+                                        List<AlarmsBean> alarms = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(AlarmsBean.class);
                                         if (alarms.isEmpty()) {
                                             getNotificationManager().notify(id++, getNotification(cityList1.getCityName() + " " + alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), cityList1.getId()));
-                                            Alarms alarms1 = new Alarms();
-                                            alarms1.setNotificationId(alarmsBean.getAlarmId());
-                                            alarms1.save();
+                                            AlarmsBean alarmsBean1 = new AlarmsBean();
+                                            alarmsBean1.setNotificationId(alarmsBean.getAlarmId());
+                                            alarmsBean1.save();
                                         }
                                     }
                                 }

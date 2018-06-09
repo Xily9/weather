@@ -11,14 +11,14 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
-import com.xily.weather.MyApplication;
+import com.xily.weather.app.App;
 
 import static android.content.Context.ACTIVITY_SERVICE;
 
 
 public class DeviceUtil {
 
-    private static final DisplayMetrics outMetrics = MyApplication.getInstance().getResources().getDisplayMetrics();
+    private static final DisplayMetrics outMetrics = App.getInstance().getResources().getDisplayMetrics();
 
     /**
      * 获取设备宽度
@@ -65,12 +65,12 @@ public class DeviceUtil {
     }
 
     public static void hideSoftInput(Activity activity) {
-        InputMethodManager imm = (InputMethodManager) MyApplication.getInstance().getSystemService(Context.INPUT_METHOD_SERVICE);
+        InputMethodManager imm = (InputMethodManager) App.getInstance().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
     }
 
     public static String getCacheDir() {
-        return MyApplication.getInstance().getExternalCacheDir().getPath();
+        return App.getInstance().getExternalCacheDir().getPath();
     }
 
     public static void setStatusBarUpper(Activity activity) {
@@ -82,7 +82,7 @@ public class DeviceUtil {
     }
 
     public static boolean isServiceRunning(String ServicePackageName) {
-        ActivityManager manager = (ActivityManager) MyApplication.getInstance().getSystemService(ACTIVITY_SERVICE);
+        ActivityManager manager = (ActivityManager) App.getInstance().getSystemService(ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
             if (ServicePackageName.equals(service.service.getClassName())) {
                 return true;

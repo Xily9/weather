@@ -16,7 +16,7 @@ import android.util.TypedValue;
 import android.view.View;
 
 import com.xily.weather.R;
-import com.xily.weather.entity.WeatherInfo;
+import com.xily.weather.model.bean.WeatherBean;
 import com.xily.weather.utils.LogUtil;
 import com.xily.weather.utils.WeatherUtil;
 
@@ -31,7 +31,7 @@ public class Weather3View extends View {
     private int width = 60, oldX, oldY, w, h, paddingTop = 10;
     private DisplayMetrics dm = getResources().getDisplayMetrics();
     private Map<String, Integer> map = WeatherUtil.getWeatherIcons();
-    public List<WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> weather3HoursDetailsInfosBeans = new ArrayList<>();
+    public List<WeatherBean.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> weather3HoursDetailsInfosBeans = new ArrayList<>();
 
     public Weather3View(Context context) {
         super(context);
@@ -43,7 +43,7 @@ public class Weather3View extends View {
         this.context = context;
     }
 
-    public void setData(List<WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> weather3HoursDetailsInfosBeans) {
+    public void setData(List<WeatherBean.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean> weather3HoursDetailsInfosBeans) {
         this.weather3HoursDetailsInfosBeans.clear();
         this.weather3HoursDetailsInfosBeans.addAll(weather3HoursDetailsInfosBeans);
         invalidate();
@@ -80,7 +80,7 @@ public class Weather3View extends View {
         int h2 = 100;
         path.moveTo(dp2px(x), dp2px(h1 * (max - Integer.valueOf(weather3HoursDetailsInfosBeans.get(0).getHighestTemperature())) + paddingTop + 10));
         for (int i = 0; i < weather3HoursDetailsInfosBeans.size(); i++) {
-            WeatherInfo.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean value = weather3HoursDetailsInfosBeans.get(i);
+            WeatherBean.ValueBean.WeatherDetailsInfoBean.Weather3HoursDetailsInfosBean value = weather3HoursDetailsInfosBeans.get(i);
             int temp = Integer.valueOf(value.getHighestTemperature());
             canvas.drawCircle(dp2px(x), dp2px(h1 * (max - temp) + paddingTop + 10), dp2px(3), paint);
             if (i > 0) {

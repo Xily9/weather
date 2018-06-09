@@ -3,12 +3,12 @@ package com.xily.weather.utils;
 import com.amap.api.location.AMapLocationClient;
 import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
-import com.xily.weather.MyApplication;
+import com.xily.weather.app.App;
 
 public class LocationUtil {
 
     public static void getLocation(AMapLocationListener listener) {
-        AMapLocationClient mLocationClient = new AMapLocationClient(MyApplication.getInstance());
+        AMapLocationClient mLocationClient = new AMapLocationClient(App.getInstance());
         mLocationClient.setLocationListener(listener);
         AMapLocationClientOption mLocationOption = new AMapLocationClientOption();
         //获取一次定位结果：

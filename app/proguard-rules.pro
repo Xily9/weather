@@ -38,7 +38,7 @@
 -keep class com.google.gson.** { *; }
 
 #实体类不混淆
--keep class com.xily.weather.entity.** { *; }
+-keep class com.xily.weather.model.bean.** { *; }
 
 -keep class android.support.v7.widget.SearchView { *; }
 
