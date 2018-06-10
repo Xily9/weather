@@ -4,6 +4,7 @@ import android.app.Application;
 
 import com.xily.weather.di.component.AppComponent;
 import com.xily.weather.di.component.DaggerAppComponent;
+import com.xily.weather.di.module.AppModule;
 
 import org.litepal.LitePal;
 
@@ -23,7 +24,9 @@ public class App extends Application {
 
     public static AppComponent getAppComponent() {
         if (appComponent == null) {
-            appComponent = DaggerAppComponent.create();
+            appComponent = DaggerAppComponent.builder()
+                    .appModule(new AppModule(mInstance))
+                    .build();
         }
         return appComponent;
     }

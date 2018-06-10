@@ -10,14 +10,12 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
@@ -64,21 +62,17 @@ import com.xily.weather.widget.BounceBackViewPager;
 
 import org.litepal.crud.DataSupport;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import javax.inject.Inject;
 
 import butterknife.BindView;
 import butterknife.OnClick;
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.Response;
 import rx.Observable;
 import rx.Subscription;
@@ -101,10 +95,11 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     @BindView(R.id.progress)
     ProgressBar progressBar;
     private long exitTime;
-    private PreferenceUtil data;
     private Subscription subscription;
     private List<CityListBean> cityList;
-
+    private ProgressDialog progressDialog;
+    @Inject
+    PreferenceUtil data;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         DeviceUtil.setStatusBarUpper(this);
@@ -123,7 +118,6 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
 
     @Override
     public void initViews(Bundle savedInstanceState) {
-        data = PreferenceUtil.getInstance();
         loadBackgroundImage();
         initToolBar();
         initNavigationView();
@@ -408,77 +402,6 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
         }
     }
 
-    private void update(String url) {
-        ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle("下载中");
-        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        progressDialog.setCancelable(false);
-        progressDialog.setMax(100);
-        progressDialog.setIndeterminate(false);
-        progressDialog.show();
-        String filePath = DeviceUtil.getCacheDir() + "/weather.apk";
-        Observable.create((Observable.OnSubscribe<Integer>) subscriber -> {
-            InputStream inputStream = null;
-            OutputStream outputStream = null;
-            OkHttpClient client = new OkHttpClient();
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("Accept-Encoding", "identity")
-                    .build();
-            try {
-                Response response = client.newCall(request).execute();
-                if (response.isSuccessful()) {
-                    inputStream = response.body().byteStream();
-                    long length = response.body().contentLength();
-                    LogUtil.d("length", String.valueOf(length));
-                    outputStream = new FileOutputStream(filePath);
-                    byte data[] = new byte[1024];
-                    subscriber.onNext(0);
-                    long total = 0;
-                    int count;
-                    while ((count = inputStream.read(data)) != -1) {
-                        total += count;
-                        // 返回当前实时进度
-                        subscriber.onNext((int) (total * 100 / length));
-                        outputStream.write(data, 0, count);
-                    }
-                    outputStream.flush();
-                    outputStream.close();
-                    inputStream.close();
-                }
-            } catch (IOException e) {
-                subscriber.onError(e);
-            } finally {
-                if (inputStream != null) {
-                    try {
-                        inputStream.close();
-                    } catch (IOException e) {
-                    }
-                }
-                if (outputStream != null) {
-                    try {
-                        outputStream.close();
-                    } catch (IOException e) {
-                    }
-                }
-            }
-            subscriber.onCompleted();
-        })
-                .onBackpressureBuffer()
-                .compose(bindToLifecycle())
-                .compose(RxHelper.applySchedulers())
-                .subscribe(progressDialog::setProgress, Throwable::printStackTrace, () -> {
-                    progressDialog.dismiss();
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    File file = new File(filePath);
-                    Uri apkUri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".fileProvider", file);
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-                    startActivity(intent);
-                });
-    }
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -492,11 +415,6 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
             default:
                 break;
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
     }
 
     @Override
@@ -517,7 +435,30 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     }
 
     @Override
-    public void showDownloadProgress(int progress) {
-
+    public void initProgress() {
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle("下载中");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        progressDialog.setCancelable(false);
+        progressDialog.setMax(100);
+        progressDialog.setIndeterminate(false);
+        progressDialog.show();
     }
+
+    @Override
+    public void showDownloadProgress(int progress) {
+        progressDialog.setProgress(progress);
+    }
+
+    @Override
+    public void closeProgress() {
+        progressDialog.dismiss();
+    }
+
+    @Override
+    public void showErrorMsg(String msg) {
+        SnackbarUtil.showMessage(getWindow().getDecorView(), msg);
+    }
+
+
 }

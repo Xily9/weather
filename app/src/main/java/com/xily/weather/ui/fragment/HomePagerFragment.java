@@ -7,18 +7,16 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.google.gson.Gson;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.base.RxBaseFragment;
-import com.xily.weather.model.bean.CityListBean;
+import com.xily.weather.base.BaseFragment;
+import com.xily.weather.contract.PagerContract;
 import com.xily.weather.model.bean.WeatherBean;
-import com.xily.weather.model.network.RetrofitHelper;
+import com.xily.weather.presenter.PagerPresenter;
 import com.xily.weather.ui.activity.AlarmActivity;
 import com.xily.weather.ui.adapter.ForecastAdapter;
 import com.xily.weather.ui.adapter.SuggestAdapter;
@@ -26,17 +24,12 @@ import com.xily.weather.utils.ColorUtil;
 import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.widget.Weather3View;
 
-import org.litepal.crud.DataSupport;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
-public class HomePagerFragment extends RxBaseFragment {
+public class HomePagerFragment extends BaseFragment<PagerPresenter> implements PagerContract.View {
     @BindView(R.id.temperature)
     TextView temperature;
     @BindView(R.id.weather)
@@ -73,8 +66,6 @@ public class HomePagerFragment extends RxBaseFragment {
     SwipeRefreshLayout swipeRefreshLayout;
     private TextView title;
     private TextView updateTime;
-    private CityListBean cityList;
-    private boolean isRefreshing;
     private boolean isVisible, isViewCreated;
 
     public static HomePagerFragment newInstance(int position) {
@@ -84,6 +75,7 @@ public class HomePagerFragment extends RxBaseFragment {
         fragment.setArguments(args);
         return fragment;
     }
+
     @Override
     public int getLayoutId() {
         return R.layout.layout_fragment_homepager;
@@ -94,18 +86,12 @@ public class HomePagerFragment extends RxBaseFragment {
         initToolbar();
         Bundle bundle = getArguments();
         int position = bundle.getInt("position");
-        List<CityListBean> cityLists = DataSupport.findAll(CityListBean.class);
-        if (cityLists.size() > position) {
-            cityList = cityLists.get(position);
-            swipeRefreshLayout.setColorSchemeColors(ColorUtil.getAttrColor(getActivity(), R.attr.colorAccent));
-            swipeRefreshLayout.setOnRefreshListener(() -> {
-                isRefreshing = true;
-                loadData();
-            });
-            isViewCreated = true;
-            onVisible();
-            loadData();
-        }
+        mPresenter.getCityInfo(position);
+        swipeRefreshLayout.setColorSchemeColors(ColorUtil.getAttrColor(getActivity(), R.attr.colorAccent));
+        swipeRefreshLayout.setOnRefreshListener(() -> mPresenter.getWeather(true));
+        isViewCreated = true;
+        onVisible();
+        mPresenter.getWeather(false);
     }
 
     @Override
@@ -127,57 +113,17 @@ public class HomePagerFragment extends RxBaseFragment {
 
     private void onVisible() {
         if (isVisible && isViewCreated) {
-            title.setText(cityList.getCityName());
-            updateTime.setText(cityList.getUpdateTimeStr() + "更新");
+            mPresenter.getSetTitleUpdateTime();
         }
     }
 
     @Override
-    public void loadData() {
-        Observable<WeatherBean> offline = Observable.just(null)
-                .map(o -> {
-                    String data = cityList.getWeatherData();
-                    if (isRefreshing || System.currentTimeMillis() - cityList.getUpdateTime() > 1000 * 60 * 60 || TextUtils.isEmpty(data)) {
-                        return null;
-                    } else {
-                        return new Gson().fromJson(data, WeatherBean.class);
-                    }
-                });
-        Observable<WeatherBean> online = RetrofitHelper.getWeatherApi()
-                .getWeather(String.valueOf(cityList.getWeatherId()))
-                .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .doOnSubscribe(() -> swipeRefreshLayout.setRefreshing(true))
-                .doOnUnsubscribe(() -> {
-                    isRefreshing = false;
-                    swipeRefreshLayout.setRefreshing(false);
-                })
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .unsubscribeOn(AndroidSchedulers.mainThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(weatherInfo -> {
-                    CityListBean cityListUpdate = new CityListBean();
-                    cityListUpdate.setWeatherData(new Gson().toJson(weatherInfo));
-                    cityListUpdate.setUpdateTime(System.currentTimeMillis());
-                    cityListUpdate.setUpdateTimeStr(weatherInfo.getValue().get(0).getRealtime().getTime().substring(11, 16));
-                    cityListUpdate.update(cityList.getId());
-                    updateTime.setText(cityListUpdate.getUpdateTimeStr() + "更新");
-                    cityList = DataSupport.find(CityListBean.class, cityList.getId());
-                    Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
-                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
-                    Intent intent2 = new Intent("android.appwidget.action.APPWIDGET_UPDATE");
-                    getApplicationContext().sendBroadcast(intent2);
-                });
-        Observable.concat(offline, online)
-                .takeFirst(weatherInfo -> weatherInfo != null)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::finishTask, throwable -> {
-                    throwable.printStackTrace();
-                    SnackbarUtil.showMessage(getActivity().getWindow().getDecorView(), throwable.getMessage());
-                });
+    public void initInject() {
+        getFragmentComponent().inject(this);
     }
 
-    public void finishTask(WeatherBean weatherBean) {
+    @Override
+    public void showWeather(WeatherBean weatherBean) {
         WeatherBean.ValueBean valueBean = weatherBean.getValue().get(0);
         temperature.setText(valueBean.getRealtime().getTemp());
         weather.setText(valueBean.getRealtime().getWeather());
@@ -205,7 +151,7 @@ public class HomePagerFragment extends RxBaseFragment {
             alarm.setText(stringBuilder.toString());
             alarm.setOnClickListener(v -> {
                 Intent intent = new Intent(getActivity(), AlarmActivity.class);
-                intent.putExtra("alarmId", cityList.getId());
+                intent.putExtra("alarmId", mPresenter.getCityId());
                 startActivity(intent);
             });
         }
@@ -223,5 +169,33 @@ public class HomePagerFragment extends RxBaseFragment {
         List<WeatherBean.ValueBean.IndexesBean> indexesBeans = valueBean.getIndexes();
         suggest.setLayoutManager(new GridLayoutManager(getActivity(), 3));
         suggest.setAdapter(new SuggestAdapter(indexesBeans));
+    }
+
+    @Override
+    public void setRefreshing(boolean isRefreshing) {
+        swipeRefreshLayout.setRefreshing(isRefreshing);
+    }
+
+    @Override
+    public void setUpdateTime(String updateTime) {
+        this.updateTime.setText(updateTime);
+    }
+
+    @Override
+    public void setTitle(String title) {
+        this.title.setText(title);
+    }
+
+    @Override
+    public void sendBroadcast() {
+        Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+        Intent intent2 = new Intent("android.appwidget.action.APPWIDGET_UPDATE");
+        getApplicationContext().sendBroadcast(intent2);
+    }
+
+    @Override
+    public void showErrorMsg(String msg) {
+        SnackbarUtil.showMessage(getActivity().getWindow().getDecorView(), msg);
     }
 }

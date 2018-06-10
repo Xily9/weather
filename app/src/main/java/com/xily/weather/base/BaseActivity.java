@@ -9,7 +9,7 @@ import com.xily.weather.di.module.ActivityModule;
 
 import javax.inject.Inject;
 
-public abstract class BaseActivity<T extends BasePresenter> extends RxBaseActivity {
+public abstract class BaseActivity<T extends BasePresenter> extends RxBaseActivity implements BaseView {
     @Inject
     protected T mPresenter;
 

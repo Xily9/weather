@@ -1,6 +1,6 @@
 package com.xily.weather.base;
 
-public class RxBasePresenter<T> implements BasePresenter<T> {
+public class RxBasePresenter<T extends BaseView> implements BasePresenter<T> {
     protected T mView;
 
     @Override
