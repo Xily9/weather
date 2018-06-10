@@ -1,7 +1,6 @@
 package com.xily.weather.ui.activity;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -13,7 +12,6 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
@@ -21,6 +19,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.MenuItem;
@@ -32,52 +31,32 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.amap.api.location.AMapLocation;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.SimpleTarget;
-import com.bumptech.glide.request.transition.Transition;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.base.BaseActivity;
 import com.xily.weather.contract.MainContract;
 import com.xily.weather.model.bean.BusBean;
 import com.xily.weather.model.bean.CityListBean;
-import com.xily.weather.model.bean.SearchBean;
 import com.xily.weather.model.bean.VersionBean;
-import com.xily.weather.model.network.OkHttpHelper;
-import com.xily.weather.model.network.RetrofitHelper;
 import com.xily.weather.presenter.MainPresenter;
 import com.xily.weather.rx.RxBus;
 import com.xily.weather.rx.RxHelper;
 import com.xily.weather.service.WeatherService;
 import com.xily.weather.ui.adapter.HomePagerAdapter;
 import com.xily.weather.utils.DeviceUtil;
-import com.xily.weather.utils.LocationUtil;
 import com.xily.weather.utils.LogUtil;
-import com.xily.weather.utils.PreferenceUtil;
-import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.utils.ThemeUtil;
 import com.xily.weather.utils.ToastUtil;
 import com.xily.weather.widget.BounceBackViewPager;
 
-import org.litepal.crud.DataSupport;
-
-import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.inject.Inject;
-
 import butterknife.BindView;
 import butterknife.OnClick;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
 import rx.Observable;
 import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity<MainPresenter> implements NavigationView.OnNavigationItemSelectedListener, MainContract.View {
     @BindView(R.id.drawer_layout)
@@ -98,8 +77,6 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     private Subscription subscription;
     private List<CityListBean> cityList;
     private ProgressDialog progressDialog;
-    @Inject
-    PreferenceUtil data;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         DeviceUtil.setStatusBarUpper(this);
@@ -123,12 +100,12 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
         initNavigationView();
         initRxBus();
         initCities();
-        if (data.get("checkUpdate", true))
+        if (mPresenter.getCheckUpdate())
             mPresenter.checkVersion();
     }
 
     private void loadBackgroundImage() {
-        int bgMode = data.get("bgMode", 0);
+        int bgMode = mPresenter.getBgMode();
         switch (bgMode) {
             case 0:
                 setDefaultPic();
@@ -136,52 +113,46 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
             case 1:
                 Calendar calendar = Calendar.getInstance();
                 String day = String.valueOf(calendar.get(Calendar.YEAR)) + calendar.get(Calendar.MONTH) + calendar.get(Calendar.DAY_OF_MONTH);
-                String bingPicTime = data.get("bingPicTime", "");
+                String bingPicTime = mPresenter.getBingPicTime();
                 if (!bingPicTime.equals(day)) {
-                    OkHttpHelper.get("http://guolin.tech/api/bing_pic", new Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                            e.printStackTrace();
-                            setBingPic(null);
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            String url = response.body().string();
-                            if (!TextUtils.isEmpty(url)) {
-                                data.put("bingPicUrl", url);
-                                data.put("bingPicTime", day);
-                            }
-                            setBingPic(url);
-                        }
-                    });
+                    mPresenter.getBingPic(day);
                 } else {
                     setBingPic(null);
                 }
                 break;
             case 2:
-                String imagePath = data.get("bgImgPath", "");
+                String imagePath = mPresenter.getBgImgPath();
                 Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
                 mDrawerLayout.setBackground(new BitmapDrawable(getResources(), bitmap));
                 break;
         }
     }
 
-    private void setBingPic(String url) {
+    @Override
+    public void setBingPic(String url) {
         if (TextUtils.isEmpty(url)) {
-            url = data.get("bingPicUrl", "");
+            url = mPresenter.getBingPicUrl();
             if (url.isEmpty()) {
                 setDefaultPic();
                 return;
             }
         }
-        String finalUrl = url;
-        runOnUiThread(() -> Glide.with(this).load(finalUrl).into(new SimpleTarget<Drawable>() {
-            @Override
-            public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
-                mDrawerLayout.setBackground(resource);
-            }
-        }));
+        mPresenter.loadBingPic(url);
+    }
+
+    @Override
+    public void setBackground(Drawable resource) {
+        mDrawerLayout.setBackground(resource);
+    }
+
+    @Override
+    public void setProgressBar(int mode) {
+        progressBar.setVisibility(mode);
+    }
+
+    @Override
+    public void setEmptyView(int mode) {
+        empty.setVisibility(mode);
     }
 
     private void setDefaultPic() {
@@ -248,8 +219,8 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
                 });
     }
 
-    private void initCities() {
-        cityList = DataSupport.findAll(CityListBean.class);
+    public void initCities() {
+        cityList = mPresenter.getCityList();
         if (!cityList.isEmpty()) {
             initViewPager();
             setPos(0);
@@ -263,7 +234,7 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     @OnClick(R.id.empty)
     void checkPermission() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            findLocation();
+            mPresenter.findLocation();
         } else {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 new AlertDialog.Builder(this)
@@ -274,54 +245,12 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
                         .setCancelable(false)
                         .show();
             } else {
-                findLocation();
+                mPresenter.findLocation();
             }
         }
     }
 
-    void findLocation() {
-        Observable.create((Observable.OnSubscribe<AMapLocation>) subscriber -> LocationUtil.getLocation(location -> {
-            if (location == null) {
-                subscriber.onError(new RuntimeException("获取定位信息失败!"));
-            } else {
-                if (location.getErrorCode() == 0) {
-                    subscriber.onNext(location);
-                    subscriber.onCompleted();
-                } else {
-                    //定位失败时，可通过ErrCode（错误码）信息来确定失败的原因，errInfo是错误信息，详见错误码表。
-                    subscriber.onError(new RuntimeException("location Error, ErrCode:"
-                            + location.getErrorCode() + ", errInfo:"
-                            + location.getErrorInfo()));
-                }
-            }
-        }))
-                .flatMap(location -> RetrofitHelper.getWeatherApi()
-                        .search(location.getDistrict().substring(0, location.getDistrict().length() - 1))
-                        .compose(bindToLifecycle())
-                        .subscribeOn(Schedulers.io()))
-                .doOnSubscribe(() -> {
-                    progressBar.setVisibility(View.VISIBLE);
-                    empty.setVisibility(View.GONE);
-                })
-                .doOnUnsubscribe(() -> progressBar.setVisibility(View.GONE))
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .unsubscribeOn(AndroidSchedulers.mainThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(searchBean -> {
-                    SearchBean.HeWeather6Bean heWeather6Bean = searchBean.getHeWeather6().get(0);
-                    if (heWeather6Bean.getStatus().equals("ok") && !heWeather6Bean.getBasic().isEmpty()) {
-                        CityListBean cityList = new CityListBean();
-                        cityList.setCityName(heWeather6Bean.getBasic().get(0).getLocation());
-                        cityList.setWeatherId(Integer.valueOf(heWeather6Bean.getBasic().get(0).getCid().substring(2)));
-                        cityList.save();
-                        initCities();
-                    }
-                }, throwable -> {
-                    throwable.printStackTrace();
-                    SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
-                    empty.setVisibility(View.VISIBLE);
-                });
-    }
+
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -353,9 +282,9 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
         mDrawerToggle.syncState();
         mNavigationView.setNavigationItemSelectedListener(this);
         View sideMenuView = mNavigationView.inflateHeaderView(R.layout.layout_side_menu);
-        String imagePath = data.get("navImgPath", "");
+        String imagePath = mPresenter.getNavImgPath();
         ImageView imageView = sideMenuView.findViewById(R.id.nav_image);
-        if (data.get("navMode", 0) == 0 || TextUtils.isEmpty(imagePath)) {
+        if (mPresenter.getNavMode() == 0 || TextUtils.isEmpty(imagePath)) {
             imageView.setMaxHeight(DeviceUtil.dp2px(200));
             imageView.setImageResource(R.drawable.bg);
         } else {
@@ -407,7 +336,7 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
         switch (requestCode) {
             case 1:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    findLocation();
+                    mPresenter.findLocation();
                 } else {
                     ToastUtil.ShortToast("您已取消权限申请,无法定位!");
                 }
@@ -419,7 +348,7 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
 
     @Override
     public void showUpdateDialog(String versionName, int version, VersionBean.DataBean dataBean) {
-        android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(this)
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
                 .setTitle("版本升级")
                 .setMessage("当前版本：" + versionName + "\n" +
                         "新版本：" + dataBean.getVersion_name() + "\n" +
@@ -429,7 +358,7 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
                 .setCancelable(false);
         if (dataBean.getVersion_force_update_under() <= version) {
             builder.setNegativeButton("取消", null);
-            builder.setNeutralButton("该版本不再提示", (a, b) -> data.put("checkedVersion", dataBean.getVersion()));
+            builder.setNeutralButton("该版本不再提示", (a, b) -> mPresenter.setCheckVersion(dataBean.getVersion()));
         }
         builder.show();
     }
@@ -454,11 +383,5 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     public void closeProgress() {
         progressDialog.dismiss();
     }
-
-    @Override
-    public void showErrorMsg(String msg) {
-        SnackbarUtil.showMessage(getWindow().getDecorView(), msg);
-    }
-
 
 }

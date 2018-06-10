@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import com.google.gson.Gson;
 import com.xily.weather.base.RxBasePresenter;
 import com.xily.weather.contract.PagerContract;
+import com.xily.weather.model.DataManager;
 import com.xily.weather.model.bean.CityListBean;
 import com.xily.weather.model.bean.WeatherBean;
 import com.xily.weather.model.network.RetrofitHelper;
@@ -22,9 +23,10 @@ import rx.schedulers.Schedulers;
 public class PagerPresenter extends RxBasePresenter<PagerContract.View> implements PagerContract.Presenter {
 
     private CityListBean cityList;
-
+    private DataManager mDataManager;
     @Inject
-    public PagerPresenter() {
+    public PagerPresenter(DataManager dataManager) {
+        mDataManager = dataManager;
     }
 
     @Override

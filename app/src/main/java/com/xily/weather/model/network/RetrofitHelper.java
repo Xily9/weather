@@ -1,19 +1,35 @@
 package com.xily.weather.model.network;
 
+import com.xily.weather.model.bean.CitiesBean;
+import com.xily.weather.model.bean.CountiesBean;
+import com.xily.weather.model.bean.ProvincesBean;
+import com.xily.weather.model.bean.SearchBean;
+import com.xily.weather.model.bean.VersionBean;
+import com.xily.weather.model.bean.WeatherBean;
 import com.xily.weather.model.network.api.WeatherApi;
+
+import java.util.List;
+
+import javax.inject.Inject;
 
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
+import rx.Observable;
 
-public class RetrofitHelper {
+public class RetrofitHelper implements HttpHelper {
 
     private static OkHttpClient client;//okHttpClient单例化
     private static WeatherApi weatherApiInstance;//Retrofit单例化
     static {
         client = OkHttpHelper.getClient();
         weatherApiInstance = createApi(WeatherApi.class);
+    }
+
+    @Inject
+    public RetrofitHelper() {
+
     }
 
     public static WeatherApi getWeatherApi() {
@@ -30,42 +46,33 @@ public class RetrofitHelper {
         return retrofit.create(clazz);
     }
 
-/*
-    private static void setUpOkHttpClient() {
-        client = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .addInterceptor(chain -> {
-                    Request request=chain.request();
-                    Request.Builder builder = request.newBuilder();
-                    List<String> headerValues = request.headers("baseUrl");
-                    if(headerValues != null&& headerValues.size() > 0) {
-                        builder.removeHeader("baseUrl");
-                        String headerValue = headerValues.get(0);
-                        LogUtil.d("value",headerValue);
-                        HttpUrl newBaseUrl = null;
-                        if("myApi".equals(headerValue)) {
-                            newBaseUrl = HttpUrl.parse(myApiUrl);
-                        } else if("meiZuApi".equals(headerValue)) {
-                            newBaseUrl = HttpUrl.parse(meiZuApiUrl);
-                        } else if("guoLinApi".equals(headerValue)){
-                            newBaseUrl = HttpUrl.parse(guoLinApiUrl);
-                        }else if("heWeatherApi".equals(headerValue)){
-                            newBaseUrl = HttpUrl.parse(heWeatherApiUrl);
-                        }
-                        HttpUrl newFullUrl = request.url().newBuilder()
-                                .scheme(newBaseUrl.scheme())
-                                .host(newBaseUrl.host())
-                                .port(newBaseUrl.port())
-                                .encodedPath(newBaseUrl.encodedPath()+request.url())
-                                .build();
-                        LogUtil.d("url",newFullUrl.toString());
-                        return chain.proceed(builder.url(newFullUrl).build());
-                    } else {
-                        return chain.proceed(request);
-                    }
-                })
-                .build();
+    @Override
+    public Observable<VersionBean> checkVersion() {
+        return weatherApiInstance.checkVersion();
     }
-    */
+
+    @Override
+    public Observable<WeatherBean> getWeather(String cityId) {
+        return weatherApiInstance.getWeather(cityId);
+    }
+
+    @Override
+    public Observable<SearchBean> search(String location) {
+        return weatherApiInstance.search(location);
+    }
+
+    @Override
+    public Observable<List<ProvincesBean>> getProvinces() {
+        return weatherApiInstance.getProvinces();
+    }
+
+    @Override
+    public Observable<List<CitiesBean>> getCities(String province) {
+        return weatherApiInstance.getCities(province);
+    }
+
+    @Override
+    public Observable<List<CountiesBean>> getCounties(String province, String city) {
+        return weatherApiInstance.getCounties(province, city);
+    }
 }

@@ -26,16 +26,15 @@ import android.widget.TextView;
 
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.base.RxBaseActivity;
+import com.xily.weather.base.BaseActivity;
+import com.xily.weather.contract.SettingsContract;
 import com.xily.weather.model.bean.BusBean;
 import com.xily.weather.model.bean.CityListBean;
+import com.xily.weather.presenter.SettingsPresenter;
 import com.xily.weather.rx.RxBus;
 import com.xily.weather.service.WeatherService;
 import com.xily.weather.utils.DeviceUtil;
-import com.xily.weather.utils.PreferenceUtil;
 import com.xily.weather.utils.ToastUtil;
-
-import org.litepal.crud.DataSupport;
 
 import java.util.List;
 
@@ -43,7 +42,7 @@ import butterknife.BindView;
 import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
 
-public class SettingsActivity extends RxBaseActivity {
+public class SettingsActivity extends BaseActivity<SettingsPresenter> implements SettingsContract.View {
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
     @BindView(R.id.st_1)
@@ -58,7 +57,6 @@ public class SettingsActivity extends RxBaseActivity {
     Switch st5;
     @BindView(R.id.st_10)
     Switch st10;
-    private PreferenceUtil preferenceUtil;
     private LocalBroadcastManager localBroadcastManager;
     private List<CityListBean> cityLists;
 
@@ -70,25 +68,24 @@ public class SettingsActivity extends RxBaseActivity {
     @Override
     public void initViews(Bundle savedInstanceState) {
         initToolBar();
-        preferenceUtil = PreferenceUtil.getInstance();
         localBroadcastManager = LocalBroadcastManager.getInstance(this);
-        cityLists = DataSupport.findAll(CityListBean.class);
+        cityLists = mPresenter.getCityLists();
         initItem();
     }
 
     private void initItem() {
-        st1.setChecked(preferenceUtil.get("notification", false));
-        int cityId = preferenceUtil.get("notificationId", 0);
+        st1.setChecked(mPresenter.getNotification());
+        int cityId = mPresenter.getNotificationId();
         for (CityListBean cityList : cityLists) {
             if (cityList.getId() == cityId) {
                 cityName.setText(cityList.getCityName());
                 break;
             }
         }
-        st3.setChecked(preferenceUtil.get("rain", false));
-        st4.setChecked(preferenceUtil.get("alarm", false));
-        st5.setChecked(preferenceUtil.get("isAutoUpdate", false));
-        st10.setChecked(preferenceUtil.get("checkUpdate", true));
+        st3.setChecked(mPresenter.getRain());
+        st4.setChecked(mPresenter.getAlarm());
+        st5.setChecked(mPresenter.getAutoUpdate());
+        st10.setChecked(mPresenter.getCheckUpdate());
     }
 
     @Override
@@ -109,12 +106,12 @@ public class SettingsActivity extends RxBaseActivity {
 
     @OnCheckedChanged(R.id.st_1)
     void setNotification(boolean isChecked) {
-        preferenceUtil.put("notification", isChecked);
+        mPresenter.setNotification(isChecked);
         if (isChecked) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 checkNotificationChannel();
             }
-            int cityId = preferenceUtil.get("notificationId", 0);
+            int cityId = mPresenter.getNotificationId();
             boolean check = false;
             for (CityListBean cityList : cityLists) {
                 if (cityList.getId() == cityId) {
@@ -124,7 +121,7 @@ public class SettingsActivity extends RxBaseActivity {
                 }
             }
             if (!check && !cityLists.isEmpty()) {
-                preferenceUtil.put("notificationId", cityLists.get(0).getId());
+                mPresenter.setNotificationId(cityLists.get(0).getId());
                 cityName.setText(cityLists.get(0).getCityName());
             }
         }
@@ -148,7 +145,7 @@ public class SettingsActivity extends RxBaseActivity {
             new AlertDialog.Builder(this)
                     .setTitle("城市选择")
                     .setItems(str, (dialog, which) -> {
-                        preferenceUtil.put("notificationId", cityLists.get(which).getId());
+                        mPresenter.setNotificationId(cityLists.get(which).getId());
                         cityName.setText(cityLists.get(which).getCityName());
                         sendLocalBroadcast();
                     }).show();
@@ -160,7 +157,7 @@ public class SettingsActivity extends RxBaseActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             checkNotificationChannel();
         }
-        preferenceUtil.put("rain", isChecked);
+        mPresenter.setRain(isChecked);
     }
 
     @OnCheckedChanged(R.id.st_4)
@@ -168,18 +165,18 @@ public class SettingsActivity extends RxBaseActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             checkNotificationChannel();
         }
-        preferenceUtil.put("alarm", isChecked);
+        mPresenter.setAlarm(isChecked);
     }
 
     @OnCheckedChanged(R.id.st_5)
     void setAutoUpdate(boolean isChecked) {
-        preferenceUtil.put("isAutoUpdate", isChecked);
+        mPresenter.setAutoUpdate(isChecked);
         sendLocalBroadcast();
     }
 
     @OnCheckedChanged(R.id.st_6)
     void setNightNoUpdate(boolean isChecked) {
-        preferenceUtil.put("nightNoUpdate", isChecked);
+        mPresenter.setNightNoUpdate(isChecked);
     }
 
     @OnClick(R.id.st_8)
@@ -187,11 +184,11 @@ public class SettingsActivity extends RxBaseActivity {
         String[] choices = new String[]{"默认背景", "Bing每日一图", "自定义"};
         new AlertDialog.Builder(this)
                 .setTitle("背景图设置")
-                .setSingleChoiceItems(choices, preferenceUtil.get("bgMode", 0), (dialog, which) -> {
+                .setSingleChoiceItems(choices, mPresenter.getBgMode(), (dialog, which) -> {
                     if (which == 2) {
                         checkPermission(1);
                     } else {
-                        preferenceUtil.put("bgMode", which);
+                        mPresenter.setBgMode(which);
                         BusBean busBean = new BusBean();
                         busBean.setStatus(1);
                         RxBus.getInstance().post(busBean);
@@ -206,11 +203,11 @@ public class SettingsActivity extends RxBaseActivity {
         String[] choices = new String[]{"默认背景", "自定义"};
         new AlertDialog.Builder(this)
                 .setTitle("侧栏顶部背景设置")
-                .setSingleChoiceItems(choices, preferenceUtil.get("navMode", 0), (dialog, which) -> {
+                .setSingleChoiceItems(choices, mPresenter.getNavMode(), (dialog, which) -> {
                     if (which == 1) {
                         checkPermission(2);
                     } else {
-                        preferenceUtil.put("navMode", which);
+                        mPresenter.setNavMode(which);
                         BusBean busBean = new BusBean();
                         busBean.setStatus(1);
                         RxBus.getInstance().post(busBean);
@@ -222,7 +219,7 @@ public class SettingsActivity extends RxBaseActivity {
 
     @OnCheckedChanged(R.id.st_10)
     void setCheckUpdate(boolean isChecked) {
-        preferenceUtil.put("checkUpdate", isChecked);
+        mPresenter.setCheckUpdate(isChecked);
     }
 
     private void checkPermission(int requestCode) {
@@ -298,11 +295,11 @@ public class SettingsActivity extends RxBaseActivity {
                         ToastUtil.ShortToast("获取图片失败!");
                     } else {
                         if (requestCode == 1) {
-                            preferenceUtil.put("bgMode", 2);
-                            preferenceUtil.put("bgImgPath", imagePath);
+                            mPresenter.setBgMode(2);
+                            mPresenter.setBgImgPath(imagePath);
                         } else {
-                            preferenceUtil.put("navMode", 1);
-                            preferenceUtil.put("navImgPath", imagePath);
+                            mPresenter.setBgMode(1);
+                            mPresenter.setNavImgPath(imagePath);
                         }
                         BusBean busBean = new BusBean();
                         busBean.setStatus(1);
@@ -344,7 +341,7 @@ public class SettingsActivity extends RxBaseActivity {
 
     @TargetApi(Build.VERSION_CODES.O)
     private void checkNotificationChannel() {
-        if (!preferenceUtil.get("notificationChannelCreated", false)) {
+        if (!mPresenter.getNotificationChannelCreated()) {
             String channelId = "weather";
             String channelName = "天气通知";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
@@ -358,6 +355,11 @@ public class SettingsActivity extends RxBaseActivity {
         NotificationManager notificationManager = (NotificationManager) getSystemService(
                 NOTIFICATION_SERVICE);
         notificationManager.createNotificationChannel(channel);
-        preferenceUtil.put("notificationChannelCreated", true);
+        mPresenter.setNotificationChannelCreated(true);
+    }
+
+    @Override
+    public void initInject() {
+        getActivityComponent().inject(this);
     }
 }

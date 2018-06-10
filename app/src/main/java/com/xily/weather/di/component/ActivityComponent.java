@@ -4,6 +4,7 @@ import com.trello.rxlifecycle.components.support.RxAppCompatActivity;
 import com.xily.weather.di.module.ActivityModule;
 import com.xily.weather.di.scope.ActivityScope;
 import com.xily.weather.ui.activity.MainActivity;
+import com.xily.weather.ui.activity.SettingsActivity;
 
 import dagger.Component;
 
@@ -13,4 +14,6 @@ public interface ActivityComponent {
     RxAppCompatActivity getActivity();
 
     void inject(MainActivity mainActivity);
+
+    void inject(SettingsActivity settingsActivity);
 }

@@ -6,6 +6,7 @@ import com.xily.weather.app.App;
 import com.xily.weather.di.component.ActivityComponent;
 import com.xily.weather.di.component.DaggerActivityComponent;
 import com.xily.weather.di.module.ActivityModule;
+import com.xily.weather.utils.SnackbarUtil;
 
 import javax.inject.Inject;
 
@@ -37,5 +38,10 @@ public abstract class BaseActivity<T extends BasePresenter> extends RxBaseActivi
             mPresenter.detachView();
         }
         super.onDestroy();
+    }
+
+    @Override
+    public void showErrorMsg(String msg) {
+        SnackbarUtil.showMessage(getWindow().getDecorView(), msg);
     }
 }
