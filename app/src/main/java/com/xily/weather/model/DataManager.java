@@ -1,8 +1,12 @@
 package com.xily.weather.model;
 
+import com.xily.weather.model.bean.AlarmsBean;
 import com.xily.weather.model.bean.CitiesBean;
+import com.xily.weather.model.bean.CityBean;
 import com.xily.weather.model.bean.CityListBean;
 import com.xily.weather.model.bean.CountiesBean;
+import com.xily.weather.model.bean.CountyBean;
+import com.xily.weather.model.bean.ProvinceBean;
 import com.xily.weather.model.bean.ProvincesBean;
 import com.xily.weather.model.bean.SearchBean;
 import com.xily.weather.model.bean.VersionBean;
@@ -16,9 +20,9 @@ import java.util.List;
 import rx.Observable;
 
 public class DataManager implements HttpHelper, PreferencesHelper, DbHelper {
-    PreferencesHelper mPreferenceHelper;
-    HttpHelper mHttpHelper;
-    DbHelper mDbHelper;
+    private PreferencesHelper mPreferenceHelper;
+    private HttpHelper mHttpHelper;
+    private DbHelper mDbHelper;
 
     public DataManager(PreferencesHelper preferencesHelper, HttpHelper httpHelper, DbHelper dbHelper) {
         mPreferenceHelper = preferencesHelper;
@@ -177,6 +181,16 @@ public class DataManager implements HttpHelper, PreferencesHelper, DbHelper {
     }
 
     @Override
+    public String getRainNotificationTime() {
+        return mPreferenceHelper.getRainNotificationTime();
+    }
+
+    @Override
+    public void setRainNotificationTime(String time) {
+        mPreferenceHelper.setRainNotificationTime(time);
+    }
+
+    @Override
     public List<CityListBean> getCityList() {
         return mDbHelper.getCityList();
     }
@@ -184,6 +198,21 @@ public class DataManager implements HttpHelper, PreferencesHelper, DbHelper {
     @Override
     public CityListBean getCityById(int id) {
         return mDbHelper.getCityById(id);
+    }
+
+    @Override
+    public List<CityListBean> getCityByWeatherId(int id) {
+        return mDbHelper.getCityByWeatherId(id);
+    }
+
+    @Override
+    public List<ProvinceBean> getProvince() {
+        return mDbHelper.getProvince();
+    }
+
+    @Override
+    public List<CityBean> getCity(String provinceId) {
+        return mDbHelper.getCity(provinceId);
     }
 
     @Override
@@ -209,6 +238,21 @@ public class DataManager implements HttpHelper, PreferencesHelper, DbHelper {
     @Override
     public Observable<List<CitiesBean>> getCities(String province) {
         return mHttpHelper.getCities(province);
+    }
+
+    @Override
+    public List<CountyBean> getCounty(String cityId) {
+        return mDbHelper.getCounty(cityId);
+    }
+
+    @Override
+    public void deleteCity(int id) {
+        mDbHelper.deleteCity(id);
+    }
+
+    @Override
+    public List<AlarmsBean> getAlarmsById(String id) {
+        return mDbHelper.getAlarmsById(id);
     }
 
     @Override

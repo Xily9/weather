@@ -5,7 +5,7 @@ import com.xily.weather.utils.PreferenceUtil;
 import javax.inject.Inject;
 
 public class ImplPreferencesHelper implements PreferencesHelper {
-    PreferenceUtil mPreference;
+    private PreferenceUtil mPreference;
 
     @Inject
     public ImplPreferencesHelper(PreferenceUtil preference) {
@@ -109,7 +109,7 @@ public class ImplPreferencesHelper implements PreferencesHelper {
 
     @Override
     public void setNotificationId(int id) {
-        mPreference.get("notificationId", id);
+        mPreference.put("notificationId", id);
     }
 
     @Override
@@ -160,5 +160,15 @@ public class ImplPreferencesHelper implements PreferencesHelper {
     @Override
     public void setNotificationChannelCreated(boolean channelCreated) {
         mPreference.put("notificationChannelCreated", channelCreated);
+    }
+
+    @Override
+    public String getRainNotificationTime() {
+        return mPreference.get("rainNotificationTime", "");
+    }
+
+    @Override
+    public void setRainNotificationTime(String time) {
+        mPreference.put("rainNotificationTime", time);
     }
 }

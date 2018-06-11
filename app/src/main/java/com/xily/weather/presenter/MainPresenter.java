@@ -22,7 +22,6 @@ import com.xily.weather.model.bean.CityListBean;
 import com.xily.weather.model.bean.SearchBean;
 import com.xily.weather.model.bean.VersionBean;
 import com.xily.weather.model.network.OkHttpHelper;
-import com.xily.weather.model.network.RetrofitHelper;
 import com.xily.weather.rx.RxHelper;
 import com.xily.weather.utils.DeviceUtil;
 import com.xily.weather.utils.LocationUtil;
@@ -48,12 +47,13 @@ import rx.schedulers.Schedulers;
 
 public class MainPresenter extends RxBasePresenter<MainContract.View> implements MainContract.Presenter {
     App mContext;
-    DataManager mDataManager;
-
+    private DataManager mDataManager;
+    private OkHttpHelper mOkHttpHelper;
     @Inject
-    public MainPresenter(App context, DataManager dataManager) {
+    public MainPresenter(App context, DataManager dataManager, OkHttpHelper okHttpHelper) {
         mContext = context;
         mDataManager = dataManager;
+        mOkHttpHelper = okHttpHelper;
     }
 
     @Override
@@ -66,8 +66,7 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
         int version = BuildConfig.VERSION_CODE;
         String versionName = BuildConfig.VERSION_NAME;
         int checkedVersion = mDataManager.getCheckedVersion();
-        RetrofitHelper.getWeatherApi()
-                .checkVersion()
+        mDataManager.checkVersion()
                 .compose(mView.bindToLifecycle())
                 .compose(RxHelper.applySchedulers())
                 .subscribe(versionBean -> {
@@ -148,7 +147,7 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
 
     @Override
     public void getBingPic(String day) {
-        OkHttpHelper.get("http://guolin.tech/api/bing_pic", new Callback() {
+        mOkHttpHelper.get("http://guolin.tech/api/bing_pic", new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
@@ -184,7 +183,7 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
                 }
             }
         }))
-                .flatMap(location -> RetrofitHelper.getWeatherApi()
+                .flatMap(location -> mDataManager
                         .search(location.getDistrict().substring(0, location.getDistrict().length() - 1))
                         .compose(mView.bindToLifecycle())
                         .subscribeOn(Schedulers.io()))

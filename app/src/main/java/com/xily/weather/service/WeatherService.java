@@ -19,38 +19,47 @@ import android.widget.RemoteViews;
 import com.google.gson.Gson;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
+import com.xily.weather.app.App;
+import com.xily.weather.di.component.DaggerServiceComponent;
+import com.xily.weather.model.DataManager;
 import com.xily.weather.model.bean.AlarmsBean;
 import com.xily.weather.model.bean.CityListBean;
 import com.xily.weather.model.bean.WeatherBean;
-import com.xily.weather.model.network.RetrofitHelper;
 import com.xily.weather.ui.activity.AlarmActivity;
 import com.xily.weather.ui.activity.MainActivity;
 import com.xily.weather.utils.LogUtil;
-import com.xily.weather.utils.PreferenceUtil;
 import com.xily.weather.utils.WeatherUtil;
-
-import org.litepal.crud.DataSupport;
 
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+
+import javax.inject.Inject;
 
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
 public class WeatherService extends Service {
     private myBroadcastReceiver myBroadcastReceiver;
-    private PreferenceUtil preferenceUtil;
     private PendingIntent pendingIntent;
     private boolean isForeground;
     private int id = 2;
     private Map<String, Integer> map = WeatherUtil.getWeatherIcons();
+    @Inject
+    DataManager mDataManager;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        DaggerServiceComponent.builder()
+                .appComponent(App.getAppComponent())
+                .build().inject(this);
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        preferenceUtil = PreferenceUtil.getInstance();
-        boolean isAutoUpdate = preferenceUtil.get("isAutoUpdate", false);
-        boolean notification = preferenceUtil.get("notification", false);
+        boolean isAutoUpdate = mDataManager.getAutoUpdate();
+        boolean notification = mDataManager.getNotification();
         if (notification) {
             startNotification(false);
         }
@@ -79,7 +88,7 @@ public class WeatherService extends Service {
     }
 
     private void startNotification(boolean isUpdate) {
-        CityListBean cityList = DataSupport.find(CityListBean.class, preferenceUtil.get("notificationId", 0));
+        CityListBean cityList = mDataManager.getCityById(mDataManager.getNotificationId());
         if (cityList != null) {
             WeatherBean weatherBean = new Gson().fromJson(cityList.getWeatherData(), WeatherBean.class);
             Intent intent1 = new Intent(this, MainActivity.class);
@@ -143,11 +152,11 @@ public class WeatherService extends Service {
     private void runTask() {
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        boolean nightNoUpdate = preferenceUtil.get("nightNoUpdate", false);
+        boolean nightNoUpdate = mDataManager.getNightNoUpdate();
         if ((nightNoUpdate && hour < 23 && hour >= 6) || !nightNoUpdate) {
-            List<CityListBean> cityList = DataSupport.findAll(CityListBean.class);
+            List<CityListBean> cityList = mDataManager.getCityList();
             Observable.from(cityList)
-                    .flatMap(cityList1 -> RetrofitHelper.getWeatherApi()
+                    .flatMap(cityList1 -> mDataManager
                             .getWeather(String.valueOf(cityList1.getWeatherId()))
                             .subscribeOn(Schedulers.io())
                             .doOnNext(weatherInfo -> {
@@ -157,9 +166,9 @@ public class WeatherService extends Service {
                                 cityListUpdate.setUpdateTime(System.currentTimeMillis());
                                 cityListUpdate.setUpdateTimeStr(valueBean.getRealtime().getTime().substring(11, 16));
                                 cityListUpdate.update(cityList1.getId());
-                                if (preferenceUtil.get("alarm", false)) {
+                                if (mDataManager.getAlarm()) {
                                     for (WeatherBean.ValueBean.AlarmsBean alarmsBean : valueBean.getAlarms()) {
-                                        List<AlarmsBean> alarms = DataSupport.where("notificationid=?", alarmsBean.getAlarmId()).find(AlarmsBean.class);
+                                        List<AlarmsBean> alarms = mDataManager.getAlarmsById(alarmsBean.getAlarmId());
                                         if (alarms.isEmpty()) {
                                             getNotificationManager().notify(id++, getNotification(cityList1.getCityName() + " " + alarmsBean.getAlarmTypeDesc() + "预警", alarmsBean.getAlarmContent(), cityList1.getId()));
                                             AlarmsBean alarmsBean1 = new AlarmsBean();
@@ -168,17 +177,17 @@ public class WeatherService extends Service {
                                         }
                                     }
                                 }
-                                if (preferenceUtil.get("rain", false)) {
+                                if (mDataManager.getRain()) {
                                     String day = String.valueOf(calendar.get(Calendar.YEAR)) + calendar.get(Calendar.MONTH) + calendar.get(Calendar.DAY_OF_MONTH);
-                                    String rainNotificationTime = preferenceUtil.get("rainNotificationTime", "");
+                                    String rainNotificationTime = mDataManager.getRainNotificationTime();
                                     if (hour > 6 && !rainNotificationTime.equals(day)) {
-                                        preferenceUtil.put("rainNotificationTime", day);
+                                        mDataManager.setRainNotificationTime(day);
                                         if (valueBean.getWeathers().get(0).getWeather().contains("雨")) {
                                             getNotificationManager().notify(id++, getNotification(cityList1.getCityName() + "今天有雨", "今天天气为" + valueBean.getWeathers().get(0).getWeather() + ",出门记得带伞!"));
                                         }
                                     }
                                 }
-                                boolean notification = preferenceUtil.get("notification", false);
+                                boolean notification = mDataManager.getNotification();
                                 if (notification) {
                                     startNotification(true);
                                 }
@@ -221,8 +230,8 @@ public class WeatherService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            boolean isAutoUpdate = preferenceUtil.get("isAutoUpdate", false);
-            boolean notification = preferenceUtil.get("notification", false);
+            boolean isAutoUpdate = mDataManager.getAutoUpdate();
+            boolean notification = mDataManager.getNotification();
             if (notification) {
                 if (!isForeground)
                     startNotification(false);

@@ -7,27 +7,23 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 
-import com.google.gson.Gson;
 import com.xily.weather.R;
-import com.xily.weather.base.RxBaseActivity;
-import com.xily.weather.model.bean.CityListBean;
+import com.xily.weather.base.BaseActivity;
+import com.xily.weather.contract.AlarmContract;
 import com.xily.weather.model.bean.WeatherBean;
+import com.xily.weather.presenter.AlarmPresenter;
 import com.xily.weather.ui.adapter.AlarmAdapter;
 import com.xily.weather.utils.LogUtil;
-
-import org.litepal.crud.DataSupport;
 
 import java.util.List;
 
 import butterknife.BindView;
 
-public class AlarmActivity extends RxBaseActivity {
+public class AlarmActivity extends BaseActivity<AlarmPresenter> implements AlarmContract.View {
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
     @BindView(R.id.recycle)
     RecyclerView recyclerView;
-    private int id;
-    private List<WeatherBean.ValueBean.AlarmsBean> alarmsBeanList;
 
     @Override
     public int getLayoutId() {
@@ -38,27 +34,11 @@ public class AlarmActivity extends RxBaseActivity {
     public void initViews(Bundle savedInstanceState) {
         initToolBar();
         Intent intent = getIntent();
-        id = intent.getIntExtra("alarmId", -1);
+        int id = intent.getIntExtra("alarmId", -1);
         LogUtil.d("id", "" + id);
         if (id >= 0) {
-            loadData();
+            mPresenter.getAlarms(id);
         }
-    }
-
-    @Override
-    public void loadData() {
-        CityListBean cityList = DataSupport.find(CityListBean.class, id);
-        if (cityList != null) {
-            WeatherBean weatherBean = new Gson().fromJson(cityList.getWeatherData(), WeatherBean.class);
-            alarmsBeanList = weatherBean.getValue().get(0).getAlarms();
-            finishTask();
-        }
-    }
-
-    @Override
-    public void finishTask() {
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new AlarmAdapter(alarmsBeanList));
     }
 
     @Override
@@ -80,5 +60,16 @@ public class AlarmActivity extends RxBaseActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void initInject() {
+        getActivityComponent().inject(this);
+    }
+
+    @Override
+    public void show(List<WeatherBean.ValueBean.AlarmsBean> alarmsBeanList) {
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(new AlarmAdapter(alarmsBeanList));
     }
 }

@@ -1,33 +1,24 @@
 package com.xily.weather.model.network;
 
-import java.util.concurrent.TimeUnit;
+
+import javax.inject.Inject;
 
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 
 public class OkHttpHelper {
-    private static OkHttpClient client;
+    private OkHttpClient okHttpClient;
 
-    static {
-        setUpOkHttpClient();
+    @Inject
+    public OkHttpHelper(OkHttpClient okHttpClient) {
+        this.okHttpClient = okHttpClient;
     }
 
-    public static OkHttpClient getClient() {
-        return client;
-    }
-
-    private static void setUpOkHttpClient() {
-        client = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .build();
-    }
-
-    public static void get(String url, Callback callback) {
+    public void get(String url, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)
                 .build();
-        client.newCall(request).enqueue(callback);
+        okHttpClient.newCall(request).enqueue(callback);
     }
 }

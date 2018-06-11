@@ -61,4 +61,7 @@ public interface PreferencesHelper {
 
     void setNotificationChannelCreated(boolean channelCreated);
 
+    String getRainNotificationTime();
+
+    void setRainNotificationTime(String time);
 }

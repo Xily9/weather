@@ -11,32 +11,21 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.xily.weather.R;
-import com.xily.weather.base.RxBaseActivity;
+import com.xily.weather.base.BaseActivity;
+import com.xily.weather.contract.AddCityContract;
 import com.xily.weather.model.bean.BusBean;
-import com.xily.weather.model.bean.CitiesBean;
-import com.xily.weather.model.bean.CityBean;
-import com.xily.weather.model.bean.CityListBean;
-import com.xily.weather.model.bean.CountiesBean;
-import com.xily.weather.model.bean.CountyBean;
-import com.xily.weather.model.bean.ProvinceBean;
-import com.xily.weather.model.bean.ProvincesBean;
-import com.xily.weather.model.bean.SearchBean;
-import com.xily.weather.model.network.RetrofitHelper;
+import com.xily.weather.presenter.AddCityPresenter;
 import com.xily.weather.rx.RxBus;
 import com.xily.weather.utils.DeviceUtil;
 import com.xily.weather.utils.SnackbarUtil;
 import com.xily.weather.utils.ToastUtil;
 
-import org.litepal.crud.DataSupport;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
-public class AddCityActivity extends RxBaseActivity {
+public class AddCityActivity extends BaseActivity<AddCityPresenter> implements AddCityContract.View {
     @BindView(R.id.list_view)
     ListView listView;
     @BindView(R.id.toolbar)
@@ -44,14 +33,14 @@ public class AddCityActivity extends RxBaseActivity {
     @BindView(R.id.toolbar_title)
     TextView title;
     private ArrayAdapter<String> adapter;
-    private List<String> dataList = new ArrayList<>();
-    private List<Integer> codeList = new ArrayList<>();
+    private List<String> mDataList = new ArrayList<>();
+    private List<Integer> mCodeList = new ArrayList<>();
     private int level = 0;
     private int provinceId;
     private String provinceName;
     private int cityId;
     private String cityName;
-    private int WeatherId;
+    private int weatherId;
     private String countyName;
     private boolean isSearch;
     private ProgressDialog progressDialog;
@@ -69,19 +58,16 @@ public class AddCityActivity extends RxBaseActivity {
     }
 
     private void initListView() {
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, dataList);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, mDataList);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
             if (isSearch || level == 3) {
                 if (isSearch)
                     DeviceUtil.hideSoftInput(this);
-                WeatherId = codeList.get(i);
-                countyName = dataList.get(i);
-                if (DataSupport.where("weatherid=?", String.valueOf(WeatherId)).find(CityListBean.class).isEmpty()) {
-                    CityListBean cityList = new CityListBean();
-                    cityList.setCityName(countyName);
-                    cityList.setWeatherId(WeatherId);
-                    cityList.save();
+                weatherId = mCodeList.get(i);
+                countyName = mDataList.get(i);
+                if (mPresenter.getCityByWeatherId(weatherId).isEmpty()) {
+                    mPresenter.addCity(weatherId, countyName);
                     ToastUtil.ShortToast("添加成功!");
                     BusBean busBean = new BusBean();
                     busBean.setStatus(1);
@@ -92,12 +78,12 @@ public class AddCityActivity extends RxBaseActivity {
                     SnackbarUtil.showMessage(getWindow().getDecorView(), "该城市已经被添加过!");
                 }
             } else if (level == 1) {
-                provinceId = codeList.get(i);
-                provinceName = dataList.get(i);
+                provinceId = mCodeList.get(i);
+                provinceName = mDataList.get(i);
                 loadData();
             } else if (level == 2) {
-                cityId = codeList.get(i);
-                cityName = dataList.get(i);
+                cityId = mCodeList.get(i);
+                cityName = mDataList.get(i);
                 loadData();
             }
         });
@@ -118,174 +104,19 @@ public class AddCityActivity extends RxBaseActivity {
     public void loadData() {
         switch (level) {
             case 0:
-                queryProvinces();
+                title.setText("中国");
+                mPresenter.queryProvinces();
                 break;
             case 1:
-                queryCities();
+                title.setText(provinceName);
+                mPresenter.queryCities(provinceId);
                 break;
             case 2:
-                queryCounties();
+                title.setText(cityName);
+                mPresenter.queryCounties(provinceId, cityId);
                 break;
             default:
                 break;
-        }
-    }
-
-    private void search(String str) {
-        RetrofitHelper.getWeatherApi()
-                .search(str)
-                .compose(bindToLifecycle())
-                .subscribeOn(Schedulers.io())
-                .doOnSubscribe(this::showProgressDialog)
-                .doOnUnsubscribe(this::closeProgressDialog)
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .unsubscribeOn(AndroidSchedulers.mainThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(searchBean -> {
-                    SearchBean.HeWeather6Bean heWeather6Bean = searchBean.getHeWeather6().get(0);
-                    if (heWeather6Bean.getStatus().equals("ok")) {
-                        dataList.clear();
-                        codeList.clear();
-                        for (SearchBean.HeWeather6Bean.BasicBean basicBean : heWeather6Bean.getBasic()) {
-                            dataList.add(basicBean.getLocation());
-                            codeList.add(Integer.valueOf(basicBean.getCid().substring(2)));
-                        }
-                        adapter.notifyDataSetChanged();
-                    }
-                }, throwable -> {
-                    throwable.printStackTrace();
-                    SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
-                });
-    }
-
-    private void queryProvinces() {
-        title.setText("中国");
-        List<ProvinceBean> provinceList = DataSupport.findAll(ProvinceBean.class);
-        if (provinceList.isEmpty()) {
-            RetrofitHelper.getWeatherApi()
-                    .getProvinces()
-                    .compose(bindToLifecycle())
-                    .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(this::showProgressDialog)
-                    .doOnUnsubscribe(this::closeProgressDialog)
-                    .subscribeOn(AndroidSchedulers.mainThread())
-                    .unsubscribeOn(AndroidSchedulers.mainThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(provincesInfoList -> {
-                        dataList.clear();
-                        codeList.clear();
-                        for (ProvincesBean provincesBean : provincesInfoList) {
-                            ProvinceBean province = new ProvinceBean();
-                            province.setProvinceCode(provincesBean.getId());
-                            province.setProvinceName(provincesBean.getName());
-                            province.save();
-                            dataList.add(provincesBean.getName());
-                            codeList.add(provincesBean.getId());
-                        }
-                        finishTask();
-                    }, throwable -> {
-                        throwable.printStackTrace();
-                        SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
-                    });
-        } else {
-            dataList.clear();
-            codeList.clear();
-            for (ProvinceBean province : provinceList) {
-                dataList.add(province.getProvinceName());
-                codeList.add(province.getProvinceCode());
-            }
-            finishTask();
-        }
-    }
-
-    @Override
-    public void finishTask() {
-        level++;
-        adapter.notifyDataSetChanged();
-    }
-
-    private void queryCities() {
-        title.setText(provinceName);
-        String provinceIdStr = String.valueOf(provinceId);
-        List<CityBean> cityList = DataSupport.where("provinceid=?", provinceIdStr).find(CityBean.class);
-        if (cityList.isEmpty()) {
-            RetrofitHelper.getWeatherApi()
-                    .getCities(provinceIdStr)
-                    .compose(bindToLifecycle())
-                    .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(this::showProgressDialog)
-                    .doOnUnsubscribe(this::closeProgressDialog)
-                    .subscribeOn(AndroidSchedulers.mainThread())
-                    .unsubscribeOn(AndroidSchedulers.mainThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(citiesInfoList -> {
-                        dataList.clear();
-                        codeList.clear();
-                        for (CitiesBean citiesBean : citiesInfoList) {
-                            CityBean city = new CityBean();
-                            city.setCityCode(citiesBean.getId());
-                            city.setCityName(citiesBean.getName());
-                            city.setProvinceId(provinceId);
-                            city.save();
-                            dataList.add(citiesBean.getName());
-                            codeList.add(citiesBean.getId());
-                        }
-                        finishTask();
-                    }, throwable -> {
-                        throwable.printStackTrace();
-                        SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
-                    });
-        } else {
-            dataList.clear();
-            codeList.clear();
-            for (CityBean city : cityList) {
-                dataList.add(city.getCityName());
-                codeList.add(city.getCityCode());
-            }
-            finishTask();
-        }
-    }
-
-    private void queryCounties() {
-        title.setText(cityName);
-        String cityIdStr = String.valueOf(cityId);
-        List<CountyBean> countyList = DataSupport.where("cityid=?", cityIdStr).find(CountyBean.class);
-        if (countyList.isEmpty()) {
-            RetrofitHelper.getWeatherApi()
-                    .getCounties(String.valueOf(provinceId), cityIdStr)
-                    .compose(bindToLifecycle())
-                    .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(this::showProgressDialog)
-                    .doOnUnsubscribe(this::closeProgressDialog)
-                    .subscribeOn(AndroidSchedulers.mainThread())
-                    .unsubscribeOn(AndroidSchedulers.mainThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(countiesInfoList -> {
-                        dataList.clear();
-                        codeList.clear();
-                        for (CountiesBean countiesBean : countiesInfoList) {
-                            CountyBean county = new CountyBean();
-                            int weatherId = Integer.valueOf(countiesBean.getWeather_id().substring(2));
-                            county.setWeatherId(weatherId);
-                            county.setCountyName(countiesBean.getName());
-                            county.setCityId(cityId);
-                            county.save();
-                            dataList.add(countiesBean.getName());
-                            codeList.add(weatherId);
-                        }
-                        finishTask();
-                    }, throwable -> {
-                        throwable.printStackTrace();
-                        SnackbarUtil.showMessage(getWindow().getDecorView(), throwable.getMessage());
-                    });
-        } else {
-            dataList.clear();
-            codeList.clear();
-            for (CountyBean county : countyList) {
-                dataList.add(county.getCountyName());
-                codeList.add(county.getWeatherId());
-            }
-            finishTask();
         }
     }
 
@@ -318,7 +149,7 @@ public class AddCityActivity extends RxBaseActivity {
                     loadData();
                 } else {
                     isSearch = true;
-                    search(newText);
+                    mPresenter.search(newText);
                 }
                 return false;
             }
@@ -330,7 +161,7 @@ public class AddCityActivity extends RxBaseActivity {
     /**
      * 显示进度对话框
      */
-    private void showProgressDialog() {
+    public void showProgressDialog() {
         if (progressDialog == null) {
             progressDialog = new ProgressDialog(this);
             progressDialog.setMessage("正在加载...");
@@ -342,10 +173,20 @@ public class AddCityActivity extends RxBaseActivity {
     /**
      * 关闭进度对话框
      */
-    private void closeProgressDialog() {
+    public void closeProgressDialog() {
         if (progressDialog != null) {
             progressDialog.dismiss();
         }
+    }
+
+    @Override
+    public void show(List<String> dataList, List<Integer> codeList) {
+        level++;
+        mDataList.clear();
+        mDataList.addAll(dataList);
+        mCodeList.clear();
+        mCodeList.addAll(codeList);
+        adapter.notifyDataSetChanged();
     }
 
     @Override
@@ -356,5 +197,10 @@ public class AddCityActivity extends RxBaseActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void initInject() {
+        getActivityComponent().inject(this);
     }
 }

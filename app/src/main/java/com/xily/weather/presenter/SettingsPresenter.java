@@ -10,7 +10,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 public class SettingsPresenter extends RxBasePresenter<SettingsContract.View> implements SettingsContract.Presenter {
-    DataManager mDataManager;
+    private DataManager mDataManager;
 
     @Inject
     public SettingsPresenter(DataManager dataManager) {

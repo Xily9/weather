@@ -17,23 +17,21 @@ import android.widget.TextView;
 
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.base.RxBaseActivity;
+import com.xily.weather.base.BaseActivity;
+import com.xily.weather.contract.CityContract;
 import com.xily.weather.model.bean.BusBean;
 import com.xily.weather.model.bean.CityListBean;
+import com.xily.weather.presenter.CityPresenter;
 import com.xily.weather.rx.RxBus;
 import com.xily.weather.ui.adapter.CityAdapter;
-import com.xily.weather.utils.PreferenceUtil;
-
-import org.litepal.crud.DataSupport;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.OnClick;
-import rx.Subscription;
 
-public class CityActivity extends RxBaseActivity {
+public class CityActivity extends BaseActivity<CityPresenter> implements CityContract.View {
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
     @BindView(R.id.recycle)
@@ -43,8 +41,6 @@ public class CityActivity extends RxBaseActivity {
     @BindView(R.id.view)
     CoordinatorLayout coordinatorLayout;
     private List<CityListBean> cityList = new ArrayList<>();
-    private PreferenceUtil preferenceUtil;
-    private Subscription subscription;
     private CityAdapter adapter;
 
     @Override
@@ -54,7 +50,6 @@ public class CityActivity extends RxBaseActivity {
 
     @Override
     public void initViews(Bundle savedInstanceState) {
-        preferenceUtil = PreferenceUtil.getInstance();
         initToolBar();
         initRecycleView();
         loadData();
@@ -74,16 +69,10 @@ public class CityActivity extends RxBaseActivity {
                 final int position = viewHolder.getAdapterPosition();
                 CityListBean city = cityList.get(position);
                 int id = city.getId();
-                DataSupport.delete(CityListBean.class, id);
+                mPresenter.deleteCity(id);
                 Snackbar.make(coordinatorLayout, "删除成功!", Snackbar.LENGTH_SHORT)
                         .setAction("撤销", v -> {
-                            CityListBean newCity = new CityListBean();
-                            newCity.setCityName(city.getCityName());
-                            newCity.setUpdateTime(city.getUpdateTime());
-                            newCity.setUpdateTimeStr(city.getUpdateTimeStr());
-                            newCity.setWeatherData(city.getWeatherData());
-                            newCity.setWeatherId(city.getWeatherId());
-                            newCity.save();
+                            CityListBean newCity = mPresenter.addCity(city);
                             cityList.add(position, newCity);
                             adapter.notifyItemInserted(position);
                             adapter.notifyItemRangeChanged(position, cityList.size());
@@ -93,14 +82,14 @@ public class CityActivity extends RxBaseActivity {
                 RxBus.getInstance().post(busBean);
                 cityList.remove(position);
                 adapter.notifyItemRemoved(position);
-                int cityId = preferenceUtil.get("notificationId", 0);
+                int cityId = mPresenter.getNotificationId();
                 if (id == cityId) {
                     if (cityList.isEmpty()) {
-                        preferenceUtil.put("notificationId", 0);
-                        preferenceUtil.put("notification", false);
-                        preferenceUtil.put("isAutoUpdate", false);
+                        mPresenter.setNotificationId(0);
+                        mPresenter.setNotification(false);
+                        mPresenter.setAutoUpdate(false);
                     } else {
-                        preferenceUtil.put("notificationId", cityList.get(0).getId());
+                        mPresenter.setNotificationId(cityList.get(0).getId());
                     }
                     Intent intent = new Intent(BuildConfig.APPLICATION_ID + ".LOCAL_BROADCAST");
                     LocalBroadcastManager.getInstance(CityActivity.this).sendBroadcast(intent);
@@ -139,7 +128,7 @@ public class CityActivity extends RxBaseActivity {
     @Override
     public void loadData() {
         cityList.clear();
-        cityList.addAll(DataSupport.findAll(CityListBean.class));
+        cityList.addAll(mPresenter.getCityList());
         finishTask();
     }
 
@@ -184,5 +173,10 @@ public class CityActivity extends RxBaseActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void initInject() {
+        getActivityComponent().inject(this);
     }
 }

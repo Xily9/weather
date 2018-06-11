@@ -8,9 +8,6 @@ import com.xily.weather.contract.PagerContract;
 import com.xily.weather.model.DataManager;
 import com.xily.weather.model.bean.CityListBean;
 import com.xily.weather.model.bean.WeatherBean;
-import com.xily.weather.model.network.RetrofitHelper;
-
-import org.litepal.crud.DataSupport;
 
 import java.util.List;
 
@@ -41,7 +38,7 @@ public class PagerPresenter extends RxBasePresenter<PagerContract.View> implemen
                             return new Gson().fromJson(data, WeatherBean.class);
                         }
                     });
-            Observable<WeatherBean> online = RetrofitHelper.getWeatherApi()
+            Observable<WeatherBean> online = mDataManager
                     .getWeather(String.valueOf(cityList.getWeatherId()))
                     .subscribeOn(Schedulers.io())
                     .doOnSubscribe(() -> mView.setRefreshing(true))
@@ -56,7 +53,7 @@ public class PagerPresenter extends RxBasePresenter<PagerContract.View> implemen
                         cityListUpdate.setUpdateTimeStr(weatherInfo.getValue().get(0).getRealtime().getTime().substring(11, 16));
                         cityListUpdate.update(cityList.getId());
                         mView.setUpdateTime(cityListUpdate.getUpdateTimeStr() + "更新");
-                        cityList = DataSupport.find(CityListBean.class, cityList.getId());
+                        cityList = mDataManager.getCityById(cityList.getId());
                         mView.sendBroadcast();
                     });
             Observable.concat(offline, online)
@@ -72,7 +69,7 @@ public class PagerPresenter extends RxBasePresenter<PagerContract.View> implemen
 
     @Override
     public void getCityInfo(int position) {
-        List<CityListBean> cityLists = DataSupport.findAll(CityListBean.class);
+        List<CityListBean> cityLists = mDataManager.getCityList();
         if (cityLists.size() > position) {
             cityList = cityLists.get(position);
         }
