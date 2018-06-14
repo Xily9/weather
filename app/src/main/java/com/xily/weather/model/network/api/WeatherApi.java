@@ -9,10 +9,10 @@ import com.xily.weather.model.bean.WeatherBean;
 
 import java.util.List;
 
+import io.reactivex.Observable;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
-import rx.Observable;
 
 public interface WeatherApi {
     @GET(ApiConfig.myApiUrl + "checkVersion2")

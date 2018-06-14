@@ -26,7 +26,7 @@ import android.widget.TextView;
 
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.base.BaseActivity;
+import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.contract.SettingsContract;
 import com.xily.weather.model.bean.BusBean;
 import com.xily.weather.model.bean.CityListBean;
@@ -42,7 +42,7 @@ import butterknife.BindView;
 import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
 
-public class SettingsActivity extends BaseActivity<SettingsPresenter> implements SettingsContract.View {
+public class SettingsActivity extends RxBaseActivity<SettingsPresenter> implements SettingsContract.View {
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
     @BindView(R.id.st_1)

@@ -9,7 +9,7 @@ import com.xily.weather.model.bean.WeatherBean;
 
 import java.util.List;
 
-import rx.Observable;
+import io.reactivex.Observable;
 
 public interface HttpHelper {
     Observable<VersionBean> checkVersion();

@@ -11,7 +11,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.xily.weather.R;
-import com.xily.weather.base.BaseActivity;
+import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.contract.AddCityContract;
 import com.xily.weather.model.bean.BusBean;
 import com.xily.weather.presenter.AddCityPresenter;
@@ -25,7 +25,7 @@ import java.util.List;
 
 import butterknife.BindView;
 
-public class AddCityActivity extends BaseActivity<AddCityPresenter> implements AddCityContract.View {
+public class AddCityActivity extends RxBaseActivity<AddCityPresenter> implements AddCityContract.View {
     @BindView(R.id.list_view)
     ListView listView;
     @BindView(R.id.toolbar)

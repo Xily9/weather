@@ -1,6 +1,6 @@
 package com.xily.weather.presenter;
 
-import com.xily.weather.base.RxBasePresenter;
+import com.xily.weather.base.BasePresenter;
 import com.xily.weather.contract.CityContract;
 import com.xily.weather.model.DataManager;
 import com.xily.weather.model.bean.CityListBean;
@@ -9,7 +9,7 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-public class CityPresenter extends RxBasePresenter<CityContract.View> implements CityContract.Presenter {
+public class CityPresenter extends BasePresenter<CityContract.View> implements CityContract.Presenter {
     private DataManager mDataManager;
 
     @Inject

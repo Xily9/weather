@@ -1,9 +1,15 @@
 package com.xily.weather.base;
 
+public class BasePresenter<T extends IBaseView> implements IBasePresenter<T> {
+    protected T mView;
 
-public interface BasePresenter<T extends BaseView> {
+    @Override
+    public void attachView(T view) {
+        mView = view;
+    }
 
-    void attachView(T view);
-
-    void detachView();
+    @Override
+    public void detachView() {
+        mView = null;
+    }
 }

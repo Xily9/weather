@@ -1,9 +1,10 @@
 package com.xily.weather.presenter;
 
+import android.annotation.SuppressLint;
 import android.text.TextUtils;
 
 import com.google.gson.Gson;
-import com.xily.weather.base.RxBasePresenter;
+import com.xily.weather.base.BasePresenter;
 import com.xily.weather.contract.PagerContract;
 import com.xily.weather.model.DataManager;
 import com.xily.weather.model.bean.CityListBean;
@@ -13,11 +14,11 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
-public class PagerPresenter extends RxBasePresenter<PagerContract.View> implements PagerContract.Presenter {
+public class PagerPresenter extends BasePresenter<PagerContract.View> implements PagerContract.Presenter {
 
     private CityListBean cityList;
     private DataManager mDataManager;
@@ -26,14 +27,15 @@ public class PagerPresenter extends RxBasePresenter<PagerContract.View> implemen
         mDataManager = dataManager;
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void getWeather(final boolean isRefreshing) {
         if (cityList != null) {
-            Observable<WeatherBean> offline = Observable.just(null)
+            Observable<WeatherBean> offline = Observable.just("")
                     .map(o -> {
                         String data = cityList.getWeatherData();
                         if (isRefreshing || System.currentTimeMillis() - cityList.getUpdateTime() > 1000 * 60 * 60 || TextUtils.isEmpty(data)) {
-                            return null;
+                            return new WeatherBean();
                         } else {
                             return new Gson().fromJson(data, WeatherBean.class);
                         }
@@ -41,11 +43,9 @@ public class PagerPresenter extends RxBasePresenter<PagerContract.View> implemen
             Observable<WeatherBean> online = mDataManager
                     .getWeather(String.valueOf(cityList.getWeatherId()))
                     .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(() -> mView.setRefreshing(true))
-                    .doOnUnsubscribe(() -> mView.setRefreshing(false))
-                    .subscribeOn(AndroidSchedulers.mainThread())
-                    .unsubscribeOn(AndroidSchedulers.mainThread())
                     .observeOn(AndroidSchedulers.mainThread())
+                    .doOnSubscribe(disposable -> mView.setRefreshing(true))
+                    .doFinally(() -> mView.setRefreshing(false))
                     .doOnNext(weatherInfo -> {
                         CityListBean cityListUpdate = new CityListBean();
                         cityListUpdate.setWeatherData(new Gson().toJson(weatherInfo));
@@ -57,7 +57,8 @@ public class PagerPresenter extends RxBasePresenter<PagerContract.View> implemen
                         mView.sendBroadcast();
                     });
             Observable.concat(offline, online)
-                    .takeFirst(weatherInfo -> weatherInfo != null)
+                    .filter(weatherInfo -> weatherInfo.getCode() != null)
+                    .firstElement()
                     .compose(mView.bindToLifecycle())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(weatherBean -> mView.showWeather(weatherBean), throwable -> {

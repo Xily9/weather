@@ -1,17 +1,17 @@
 package com.xily.weather.contract;
 
-import com.xily.weather.base.BasePresenter;
-import com.xily.weather.base.BaseView;
+import com.xily.weather.base.IBasePresenter;
+import com.xily.weather.base.IBaseView;
 import com.xily.weather.model.bean.CityListBean;
 
 import java.util.List;
 
 public interface CityContract {
-    interface View extends BaseView {
+    interface View extends IBaseView {
 
     }
 
-    interface Presenter extends BasePresenter<View> {
+    interface Presenter extends IBasePresenter<View> {
         void deleteCity(int id);
 
         int getNotificationId();

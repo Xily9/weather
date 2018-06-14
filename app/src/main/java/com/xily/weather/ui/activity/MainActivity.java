@@ -1,6 +1,7 @@
 package com.xily.weather.ui.activity;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -33,7 +34,7 @@ import android.widget.TextView;
 
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.base.BaseActivity;
+import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.contract.MainContract;
 import com.xily.weather.model.bean.BusBean;
 import com.xily.weather.model.bean.CityListBean;
@@ -55,10 +56,10 @@ import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.OnClick;
-import rx.Observable;
-import rx.Subscription;
+import io.reactivex.Observable;
+import io.reactivex.disposables.CompositeDisposable;
 
-public class MainActivity extends BaseActivity<MainPresenter> implements NavigationView.OnNavigationItemSelectedListener, MainContract.View {
+public class MainActivity extends RxBaseActivity<MainPresenter> implements NavigationView.OnNavigationItemSelectedListener, MainContract.View {
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
     @BindView(R.id.nav_view)
@@ -74,7 +75,7 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     @BindView(R.id.progress)
     ProgressBar progressBar;
     private long exitTime;
-    private Subscription subscription;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
     private List<CityListBean> cityList;
     private ProgressDialog progressDialog;
     @Override
@@ -169,6 +170,7 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
         setTitle("");
     }
 
+    @SuppressLint("CheckResult")
     private void initRxBus() {
         RxBus.getInstance()
                 .toObservable(BusBean.class)
@@ -209,14 +211,14 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     }
 
     private void activeTimer() {
-        subscription = Observable.just(null)
+        compositeDisposable.add(Observable.just("")
                 .delay(1000, TimeUnit.MILLISECONDS)
                 .compose(bindToLifecycle())
                 .compose(RxHelper.applySchedulers())
                 .subscribe(o -> {
                     liDot.setVisibility(View.GONE);
                     liDot.startAnimation(AnimationUtils.loadAnimation(this, R.anim.alpha_out));
-                });
+                }));
     }
 
     public void initCities() {
@@ -251,7 +253,7 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
     }
 
 
-
+    @SuppressLint("CheckResult")
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         mDrawerLayout.closeDrawer(GravityCompat.START);
@@ -309,8 +311,8 @@ public class MainActivity extends BaseActivity<MainPresenter> implements Navigat
             @Override
             public void onPageScrollStateChanged(int state) {
                 if (state == 1) {
-                    if (subscription != null && !subscription.isUnsubscribed()) {
-                        subscription.unsubscribe();
+                    if (compositeDisposable.size() > 0) {
+                        compositeDisposable.clear();
                     }
                     liDot.setVisibility(View.VISIBLE);
                 } else if (state == 0) {

@@ -1,6 +1,7 @@
 package com.xily.weather.di.module;
 
-import com.trello.rxlifecycle.components.support.RxAppCompatActivity;
+import android.app.Activity;
+
 import com.xily.weather.di.scope.ActivityScope;
 
 import dagger.Module;
@@ -9,15 +10,15 @@ import dagger.Provides;
 @Module
 public class ActivityModule {
 
-    private RxAppCompatActivity mActivity;
+    private Activity mActivity;
 
-    public ActivityModule(RxAppCompatActivity activity) {
+    public ActivityModule(Activity activity) {
         this.mActivity = activity;
     }
 
     @ActivityScope
     @Provides
-    RxAppCompatActivity provideActivity() {
+    Activity provideActivity() {
         return mActivity;
     }
 }

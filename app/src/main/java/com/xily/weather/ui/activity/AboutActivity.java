@@ -8,10 +8,12 @@ import android.widget.TextView;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
 import com.xily.weather.base.RxBaseActivity;
+import com.xily.weather.contract.AboutContract;
+import com.xily.weather.presenter.AboutPresenter;
 
 import butterknife.BindView;
 
-public class AboutActivity extends RxBaseActivity {
+public class AboutActivity extends RxBaseActivity<AboutPresenter> implements AboutContract.View {
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
     @BindView(R.id.versionName)
@@ -36,6 +38,11 @@ public class AboutActivity extends RxBaseActivity {
             actionBar.setHomeButtonEnabled(true);
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
+    }
+
+    @Override
+    public void initInject() {
+        getActivityComponent().inject(this);
     }
 
     @Override

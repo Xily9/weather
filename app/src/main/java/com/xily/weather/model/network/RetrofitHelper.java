@@ -12,11 +12,11 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import rx.Observable;
+import io.reactivex.Observable;
 
 public class RetrofitHelper implements HttpHelper {
 
-    private WeatherApi weatherApi;//Retrofit单例化
+    private WeatherApi weatherApi;
 
     @Inject
     public RetrofitHelper(WeatherApi weatherApi) {

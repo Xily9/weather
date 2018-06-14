@@ -2,15 +2,15 @@ package com.xily.weather.contract;
 
 import android.graphics.drawable.Drawable;
 
-import com.xily.weather.base.BasePresenter;
-import com.xily.weather.base.BaseView;
+import com.xily.weather.base.IBasePresenter;
+import com.xily.weather.base.IBaseView;
 import com.xily.weather.model.bean.CityListBean;
 import com.xily.weather.model.bean.VersionBean;
 
 import java.util.List;
 
 public interface MainContract {
-    interface View extends BaseView {
+    interface View extends IBaseView {
         void showUpdateDialog(String versionName, int version, VersionBean.DataBean dataBean);
         void initProgress();
         void showDownloadProgress(int progress);
@@ -27,7 +27,7 @@ public interface MainContract {
         void initCities();
     }
 
-    interface Presenter extends BasePresenter<View> {
+    interface Presenter extends IBasePresenter<View> {
         List<CityListBean> getCityList();
         void checkVersion();
         void update(String url);

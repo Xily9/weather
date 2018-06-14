@@ -1,13 +1,13 @@
 package com.xily.weather.contract;
 
-import com.xily.weather.base.BasePresenter;
-import com.xily.weather.base.BaseView;
+import com.xily.weather.base.IBasePresenter;
+import com.xily.weather.base.IBaseView;
 import com.xily.weather.model.bean.CityListBean;
 
 import java.util.List;
 
 public interface AddCityContract {
-    interface View extends BaseView {
+    interface View extends IBaseView {
         void showProgressDialog();
 
         void closeProgressDialog();
@@ -15,7 +15,7 @@ public interface AddCityContract {
         void show(List<String> dataList, List<Integer> codeList);
     }
 
-    interface Presenter extends BasePresenter<View> {
+    interface Presenter extends IBasePresenter<View> {
         List<CityListBean> getCityByWeatherId(int id);
 
         void search(String str);

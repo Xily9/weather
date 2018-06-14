@@ -1,6 +1,8 @@
 package com.xily.weather.presenter;
 
-import com.xily.weather.base.RxBasePresenter;
+import android.annotation.SuppressLint;
+
+import com.xily.weather.base.BasePresenter;
 import com.xily.weather.contract.AddCityContract;
 import com.xily.weather.model.DataManager;
 import com.xily.weather.model.bean.CitiesBean;
@@ -17,10 +19,10 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
-public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> implements AddCityContract.Presenter {
+public class AddCityPresenter extends BasePresenter<AddCityContract.View> implements AddCityContract.Presenter {
 
     private DataManager mDataManager;
 
@@ -34,6 +36,7 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
         return null;
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void search(String str) {
         List<String> dataList = new ArrayList<>();
@@ -41,11 +44,9 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
         mDataManager.search(str)
                 .compose(mView.bindToLifecycle())
                 .subscribeOn(Schedulers.io())
-                .doOnSubscribe(() -> mView.showProgressDialog())
-                .doOnUnsubscribe(() -> mView.closeProgressDialog())
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .unsubscribeOn(AndroidSchedulers.mainThread())
                 .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe(disposable -> mView.showProgressDialog())
+                .doFinally(() -> mView.closeProgressDialog())
                 .subscribe(searchBean -> {
                     SearchBean.HeWeather6Bean heWeather6Bean = searchBean.getHeWeather6().get(0);
                     if (heWeather6Bean.getStatus().equals("ok")) {
@@ -63,6 +64,7 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
                 });
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void queryProvinces() {
         List<String> dataList = new ArrayList<>();
@@ -72,11 +74,9 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
             mDataManager.getProvinces()
                     .compose(mView.bindToLifecycle())
                     .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(() -> mView.showProgressDialog())
-                    .doOnUnsubscribe(() -> mView.closeProgressDialog())
-                    .subscribeOn(AndroidSchedulers.mainThread())
-                    .unsubscribeOn(AndroidSchedulers.mainThread())
                     .observeOn(AndroidSchedulers.mainThread())
+                    .doOnSubscribe(disposable -> mView.showProgressDialog())
+                    .doFinally(() -> mView.closeProgressDialog())
                     .subscribe(provincesInfoList -> {
                         for (ProvincesBean provincesBean : provincesInfoList) {
                             ProvinceBean province = new ProvinceBean();
@@ -100,6 +100,7 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
         }
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void queryCities(int provinceId) {
         List<String> dataList = new ArrayList<>();
@@ -110,11 +111,9 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
             mDataManager.getCities(provinceIdStr)
                     .compose(mView.bindToLifecycle())
                     .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(() -> mView.showProgressDialog())
-                    .doOnUnsubscribe(() -> mView.closeProgressDialog())
-                    .subscribeOn(AndroidSchedulers.mainThread())
-                    .unsubscribeOn(AndroidSchedulers.mainThread())
                     .observeOn(AndroidSchedulers.mainThread())
+                    .doOnSubscribe(disposable -> mView.showProgressDialog())
+                    .doFinally(() -> mView.closeProgressDialog())
                     .subscribe(citiesInfoList -> {
                         for (CitiesBean citiesBean : citiesInfoList) {
                             CityBean city = new CityBean();
@@ -139,6 +138,7 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
         }
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void queryCounties(int provinceId, int cityId) {
         List<String> dataList = new ArrayList<>();
@@ -149,11 +149,9 @@ public class AddCityPresenter extends RxBasePresenter<AddCityContract.View> impl
             mDataManager.getCounties(String.valueOf(provinceId), cityIdStr)
                     .compose(mView.bindToLifecycle())
                     .subscribeOn(Schedulers.io())
-                    .doOnSubscribe(() -> mView.showProgressDialog())
-                    .doOnUnsubscribe(() -> mView.closeProgressDialog())
-                    .subscribeOn(AndroidSchedulers.mainThread())
-                    .unsubscribeOn(AndroidSchedulers.mainThread())
                     .observeOn(AndroidSchedulers.mainThread())
+                    .doOnSubscribe(disposable -> mView.showProgressDialog())
+                    .doFinally(() -> mView.closeProgressDialog())
                     .subscribe(countiesInfoList -> {
                         for (CountiesBean countiesBean : countiesInfoList) {
                             CountyBean county = new CountyBean();

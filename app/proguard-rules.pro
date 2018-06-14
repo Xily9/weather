@@ -81,8 +81,8 @@
 -keepattributes Signature
 -keepattributes Exceptions
 
--dontwarn rx.**
--keep class rx.**{*;}
+-dontwarn io.reactivex.**
+-keep class io.reactivex.**{*;}
 
 -keep class org.litepal.** {
     *;

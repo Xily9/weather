@@ -36,8 +36,8 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-import rx.Observable;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.schedulers.Schedulers;
 
 public class WeatherService extends Service {
     private myBroadcastReceiver myBroadcastReceiver;
@@ -155,7 +155,7 @@ public class WeatherService extends Service {
         boolean nightNoUpdate = mDataManager.getNightNoUpdate();
         if ((nightNoUpdate && hour < 23 && hour >= 6) || !nightNoUpdate) {
             List<CityListBean> cityList = mDataManager.getCityList();
-            Observable.from(cityList)
+            Observable.fromIterable(cityList)
                     .flatMap(cityList1 -> mDataManager
                             .getWeather(String.valueOf(cityList1.getWeatherId()))
                             .subscribeOn(Schedulers.io())

@@ -9,13 +9,20 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.trello.rxlifecycle.components.support.RxFragment;
+import com.trello.rxlifecycle2.components.support.RxFragment;
+import com.xily.weather.app.App;
+import com.xily.weather.di.component.DaggerFragmentComponent;
+import com.xily.weather.di.component.FragmentComponent;
+import com.xily.weather.di.module.FragmentModule;
+
+import javax.inject.Inject;
 
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
-public abstract class RxBaseFragment extends RxFragment {
-    private View parentView;
+public abstract class RxBaseFragment<T extends IBasePresenter> extends RxFragment implements IBaseView {
+    @Inject
+    protected T mPresenter;
     private FragmentActivity activity;
     private Unbinder bind;
 
@@ -25,16 +32,9 @@ public abstract class RxBaseFragment extends RxFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
-        parentView = inflater.inflate(getLayoutId(), container, false);
+        View parentView = inflater.inflate(getLayoutId(), container, false);
         activity = getSupportActivity();
         return parentView;
-    }
-
-    @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        bind = ButterKnife.bind(this, view);
-        finishCreateView(savedInstanceState);
     }
 
     /**
@@ -102,8 +102,24 @@ public abstract class RxBaseFragment extends RxFragment {
 
     }
 
+    public abstract void initInject();
+
     @SuppressWarnings("unchecked")
-    public <T extends View> T $(int id) {
-        return (T) parentView.findViewById(id);
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        initInject();
+        if (mPresenter != null) {
+            mPresenter.attachView(this);
+        }
+        super.onViewCreated(view, savedInstanceState);
+        bind = ButterKnife.bind(this, view);
+        finishCreateView(savedInstanceState);
+    }
+
+    protected FragmentComponent getFragmentComponent() {
+        return DaggerFragmentComponent.builder()
+                .appComponent(App.getAppComponent())
+                .fragmentModule(new FragmentModule(this))
+                .build();
     }
 }

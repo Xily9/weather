@@ -1,11 +1,11 @@
 package com.xily.weather.contract;
 
-import com.xily.weather.base.BasePresenter;
-import com.xily.weather.base.BaseView;
+import com.xily.weather.base.IBasePresenter;
+import com.xily.weather.base.IBaseView;
 import com.xily.weather.model.bean.WeatherBean;
 
 public interface PagerContract {
-    interface View extends BaseView {
+    interface View extends IBaseView {
         void showWeather(WeatherBean weatherBean);
 
         void setRefreshing(boolean isRefreshing);
@@ -17,7 +17,7 @@ public interface PagerContract {
         void sendBroadcast();
     }
 
-    interface Presenter extends BasePresenter<View> {
+    interface Presenter extends IBasePresenter<View> {
         void getWeather(boolean isRefreshing);
 
         void getCityInfo(int position);

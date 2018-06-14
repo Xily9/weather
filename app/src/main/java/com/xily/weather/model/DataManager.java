@@ -17,7 +17,8 @@ import com.xily.weather.model.prefs.PreferencesHelper;
 
 import java.util.List;
 
-import rx.Observable;
+import io.reactivex.Observable;
+
 
 public class DataManager implements HttpHelper, PreferencesHelper, DbHelper {
     private PreferencesHelper mPreferenceHelper;

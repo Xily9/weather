@@ -13,7 +13,7 @@ import android.widget.TextView;
 
 import com.xily.weather.BuildConfig;
 import com.xily.weather.R;
-import com.xily.weather.base.BaseFragment;
+import com.xily.weather.base.RxBaseFragment;
 import com.xily.weather.contract.PagerContract;
 import com.xily.weather.model.bean.WeatherBean;
 import com.xily.weather.presenter.PagerPresenter;
@@ -29,7 +29,7 @@ import java.util.List;
 
 import butterknife.BindView;
 
-public class HomePagerFragment extends BaseFragment<PagerPresenter> implements PagerContract.View {
+public class HomePagerFragment extends RxBaseFragment<PagerPresenter> implements PagerContract.View {
     @BindView(R.id.temperature)
     TextView temperature;
     @BindView(R.id.weather)

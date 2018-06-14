@@ -8,7 +8,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 
 import com.xily.weather.R;
-import com.xily.weather.base.BaseActivity;
+import com.xily.weather.base.RxBaseActivity;
 import com.xily.weather.contract.AlarmContract;
 import com.xily.weather.model.bean.WeatherBean;
 import com.xily.weather.presenter.AlarmPresenter;
@@ -19,7 +19,7 @@ import java.util.List;
 
 import butterknife.BindView;
 
-public class AlarmActivity extends BaseActivity<AlarmPresenter> implements AlarmContract.View {
+public class AlarmActivity extends RxBaseActivity<AlarmPresenter> implements AlarmContract.View {
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
     @BindView(R.id.recycle)

@@ -1,5 +1,6 @@
 package com.xily.weather.presenter;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -15,7 +16,7 @@ import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.xily.weather.BuildConfig;
 import com.xily.weather.app.App;
-import com.xily.weather.base.RxBasePresenter;
+import com.xily.weather.base.BasePresenter;
 import com.xily.weather.contract.MainContract;
 import com.xily.weather.model.DataManager;
 import com.xily.weather.model.bean.CityListBean;
@@ -36,19 +37,24 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.Observable;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
-public class MainPresenter extends RxBasePresenter<MainContract.View> implements MainContract.Presenter {
+public class MainPresenter extends BasePresenter<MainContract.View> implements MainContract.Presenter {
     App mContext;
     private DataManager mDataManager;
     private OkHttpHelper mOkHttpHelper;
+
     @Inject
     public MainPresenter(App context, DataManager dataManager, OkHttpHelper okHttpHelper) {
         mContext = context;
@@ -61,6 +67,7 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
         return mDataManager.getCityList();
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void checkVersion() {
         int version = BuildConfig.VERSION_CODE;
@@ -80,11 +87,12 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
                 }, Throwable::printStackTrace);
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void update(String url) {
         mView.initProgress();
         String filePath = DeviceUtil.getCacheDir() + "/weather.apk";
-        Observable.create((Observable.OnSubscribe<Integer>) subscriber -> {
+        Flowable.create((FlowableOnSubscribe<Integer>) subscriber -> {
             InputStream inputStream = null;
             OutputStream outputStream = null;
             OkHttpClient client = new OkHttpClient();
@@ -129,11 +137,12 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
                     }
                 }
             }
-            subscriber.onCompleted();
-        })
+            subscriber.onComplete();
+        }, BackpressureStrategy.BUFFER)
                 .onBackpressureBuffer()
                 .compose(mView.bindToLifecycle())
-                .compose(RxHelper.applySchedulers())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(integer -> mView.showDownloadProgress(integer), Throwable::printStackTrace, () -> {
                     mView.closeProgress();
                     Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -166,15 +175,16 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
         });
     }
 
+    @SuppressLint("CheckResult")
     @Override
     public void findLocation() {
-        Observable.create((Observable.OnSubscribe<AMapLocation>) subscriber -> LocationUtil.getLocation(location -> {
+        Observable.create((ObservableOnSubscribe<AMapLocation>) subscriber -> LocationUtil.getLocation(location -> {
             if (location == null) {
                 subscriber.onError(new RuntimeException("获取定位信息失败!"));
             } else {
                 if (location.getErrorCode() == 0) {
                     subscriber.onNext(location);
-                    subscriber.onCompleted();
+                    subscriber.onComplete();
                 } else {
                     //定位失败时，可通过ErrCode（错误码）信息来确定失败的原因，errInfo是错误信息，详见错误码表。
                     subscriber.onError(new RuntimeException("location Error, ErrCode:"
@@ -187,14 +197,12 @@ public class MainPresenter extends RxBasePresenter<MainContract.View> implements
                         .search(location.getDistrict().substring(0, location.getDistrict().length() - 1))
                         .compose(mView.bindToLifecycle())
                         .subscribeOn(Schedulers.io()))
-                .doOnSubscribe(() -> {
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe(disposable -> {
                     mView.setProgressBar(View.VISIBLE);
                     mView.setEmptyView(View.GONE);
                 })
-                .doOnUnsubscribe(() -> mView.setProgressBar(View.GONE))
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .unsubscribeOn(AndroidSchedulers.mainThread())
-                .observeOn(AndroidSchedulers.mainThread())
+                .doFinally(() -> mView.setProgressBar(View.GONE))
                 .subscribe(searchBean -> {
                     SearchBean.HeWeather6Bean heWeather6Bean = searchBean.getHeWeather6().get(0);
                     if (heWeather6Bean.getStatus().equals("ok") && !heWeather6Bean.getBasic().isEmpty()) {
