@@ -1,7 +1,7 @@
-#天气
+# 天气
 一个简单实用的天气APP，采用MVP架构，使用了RxJava2、Retrofit、Dagger2、Litepal等开源库<br/>
 另有 [Kotlin](https://github.com/Xily9/KotlinWeather) 版本
-#License
+# License
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ```
 Copyright (c) 2018 Xily
