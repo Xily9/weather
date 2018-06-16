@@ -181,7 +181,7 @@ public class AddCityActivity extends RxBaseActivity<AddCityPresenter> implements
 
     @Override
     public void show(List<String> dataList, List<Integer> codeList) {
-        level++;
+        if (!isSearch) level++;
         mDataList.clear();
         mDataList.addAll(dataList);
         mCodeList.clear();
