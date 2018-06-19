@@ -190,7 +190,7 @@ public class SettingsActivity extends RxBaseActivity<SettingsPresenter> implemen
                     } else {
                         mPresenter.setBgMode(which);
                         BusBean busBean = new BusBean();
-                        busBean.setStatus(1);
+                        busBean.setStatus(3);
                         RxBus.getInstance().post(busBean);
                     }
                     dialog.dismiss();
@@ -209,7 +209,7 @@ public class SettingsActivity extends RxBaseActivity<SettingsPresenter> implemen
                     } else {
                         mPresenter.setNavMode(which);
                         BusBean busBean = new BusBean();
-                        busBean.setStatus(1);
+                        busBean.setStatus(3);
                         RxBus.getInstance().post(busBean);
                     }
                     dialog.dismiss();
@@ -302,7 +302,7 @@ public class SettingsActivity extends RxBaseActivity<SettingsPresenter> implemen
                             mPresenter.setNavImgPath(imagePath);
                         }
                         BusBean busBean = new BusBean();
-                        busBean.setStatus(1);
+                        busBean.setStatus(3);
                         RxBus.getInstance().post(busBean);
                     }
                 }

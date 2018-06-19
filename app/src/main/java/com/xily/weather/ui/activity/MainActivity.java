@@ -50,6 +50,7 @@ import com.xily.weather.utils.ThemeUtil;
 import com.xily.weather.utils.ToastUtil;
 import com.xily.weather.widget.BounceBackViewPager;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -74,9 +75,14 @@ public class MainActivity extends RxBaseActivity<MainPresenter> implements Navig
     LinearLayout empty;
     @BindView(R.id.progress)
     ProgressBar progressBar;
+    @BindView(R.id.toolbar_title)
+    TextView toolbarTitle;
+    @BindView(R.id.updateTime)
+    TextView updateTime;
+    private HomePagerAdapter adapter;
     private long exitTime;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
-    private List<CityListBean> cityList;
+    private List<CityListBean> cityList = new ArrayList<>();
     private ProgressDialog progressDialog;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +105,7 @@ public class MainActivity extends RxBaseActivity<MainPresenter> implements Navig
         loadBackgroundImage();
         initToolBar();
         initNavigationView();
+        initViewPager();
         initRxBus();
         initCities();
         if (mPresenter.getCheckUpdate())
@@ -178,9 +185,11 @@ public class MainActivity extends RxBaseActivity<MainPresenter> implements Navig
                 .compose(RxHelper.applySchedulers())
                 .subscribe(busBean -> {
                     if (busBean.getStatus() == 1)
-                        recreate();
+                        initCities();
                     else if (busBean.getStatus() == 2)
                         viewPager.setCurrentItem(busBean.getPosition());
+                    else if (busBean.getStatus() == 3)
+                        recreate();
                 });
     }
 
@@ -222,14 +231,17 @@ public class MainActivity extends RxBaseActivity<MainPresenter> implements Navig
     }
 
     public void initCities() {
-        cityList = mPresenter.getCityList();
+        cityList.clear();
+        cityList.addAll(mPresenter.getCityList());
+        adapter.notifyDataSetChanged();
         if (!cityList.isEmpty()) {
-            initViewPager();
             setPos(0);
             activeTimer();
             startService();
         } else {
             empty.setVisibility(View.VISIBLE);
+            toolbarTitle.setText("");
+            updateTime.setText("");
         }
     }
 
@@ -296,7 +308,8 @@ public class MainActivity extends RxBaseActivity<MainPresenter> implements Navig
     }
 
     private void initViewPager() {
-        viewPager.setAdapter(new HomePagerAdapter(getSupportFragmentManager(), cityList));
+        adapter = new HomePagerAdapter(getSupportFragmentManager(), cityList);
+        viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
