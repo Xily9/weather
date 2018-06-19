@@ -76,6 +76,9 @@ public class CityActivity extends RxBaseActivity<CityPresenter> implements CityC
                             cityList.add(position, newCity);
                             adapter.notifyItemInserted(position);
                             adapter.notifyItemRangeChanged(position, cityList.size());
+                            BusBean busBean = new BusBean();
+                            busBean.setStatus(1);
+                            RxBus.getInstance().post(busBean);
                         }).show();
                 BusBean busBean = new BusBean();
                 busBean.setStatus(1);

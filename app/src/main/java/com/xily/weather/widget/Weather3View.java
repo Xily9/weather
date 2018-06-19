@@ -76,7 +76,7 @@ public class Weather3View extends View {
             if (temp > max) max = temp;
             if (temp < min) min = temp;
         }
-        int h1 = 70 / (max - min);
+        int h1 = max == min ? 70 : 70 / (max - min);
         int h2 = 100;
         path.moveTo(dp2px(x), dp2px(h1 * (max - Integer.valueOf(weather3HoursDetailsInfosBeans.get(0).getHighestTemperature())) + paddingTop + 10));
         for (int i = 0; i < weather3HoursDetailsInfosBeans.size(); i++) {
